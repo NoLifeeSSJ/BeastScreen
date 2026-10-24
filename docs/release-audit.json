@@ -8,6 +8,20 @@
   },
   "evidence": [
     {
+      "kind": "preview-publication-and-public-install",
+      "sourceCommit": "9fdc2f332d764c37338d411e5a4d6b2bfefc61a2",
+      "url": "https://github.com/NoLifeeSSJ/BeastScreen/actions/runs/40137220793",
+      "result": "Tagged build, core/native tests, source checksums, controlled lifecycle, publication and actual public-download install/uninstall all passed. All eight public asset digests and payload/source inventory checked independently.",
+      "limits": "Windows Server runner; no pristine Windows 11 hardware acceptance or code signing."
+    },
+    {
+      "kind": "upstream-runtime-windows-validation",
+      "sourceCommit": "9fdc2f332d764c37338d411e5a4d6b2bfefc61a2",
+      "url": "https://github.com/NoLifeeSSJ/BeastScreen/actions/runs/40136727905",
+      "result": "50 core and 15 native/integration cases; 27 helper assertions and 13 controlled lifecycle assertions on each of PowerShell 7 and Windows PowerShell 5.1; WPF smoke and dependency review passed. Real upstream runtime downloads/extraction/hash checks exercised.",
+      "limits": "Controlled app-release transport/registrations in lifecycle fixture; Windows Server rather than a pristine Windows 11 test machine."
+    },
+    {
       "kind": "preview-publication-authorization",
       "result": "User explicitly requested publication after reporting operation on Windows 11. Publish as v0.1.0-preview.1, not as a qualified stable release.",
       "validation": "Tagged release workflow must build, run core/native tests, verify corresponding-source hashes and run installer lifecycle checks before publication, then install and uninstall from the actual public release."
@@ -44,5 +58,12 @@
     "notices": "Package runtime license/third-party notices, CommunityToolkit notices, Microsoft.Data.Sqlite MIT, SQLitePCLRaw Apache-2.0 and NOTICE, Vulkan source notices are included. SQLitePCLRaw license and notice text were retrieved from upstream v2.1.12; the locked 2.1.13 NuGet metadata declares Apache-2.0 and Copyright 2014-2024 SourceGear LLC.",
     "source": "Release assets include the application source/build scripts and the exact Vulkan loader/header source archives.",
     "limit": "This does not certify the complete transitive source inventory of upstream mpv/FFmpeg builds. Do not add those binaries to our release assets without completing that audit."
+  },
+  "publishedPreview": {
+    "version": "v0.1.0-preview.1",
+    "url": "https://github.com/NoLifeeSSJ/BeastScreen/releases/tag/v0.1.0-preview.1",
+    "sourceCommit": "9fdc2f332d764c37338d411e5a4d6b2bfefc61a2",
+    "unsigned": true,
+    "qualifiedStable": false
   }
 }
