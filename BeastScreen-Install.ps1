@@ -130,6 +130,37 @@ function Invoke-StartupCheck([string]$Executable, [string]$Argument = '--health-
     if (-not $process.WaitForExit(30000)) { $process.Kill(); throw 'The application startup check timed out; the previous version is still active.' }
     if ($process.ExitCode -ne 0) { throw ('Application startup check failed (exit ' + $process.ExitCode + '). The previous version is still active. Check native dependencies or library schema compatibility.') }
 }
+function Receive-PinnedPlaybackArchive($Dependency, [string]$Destination) {
+    $uri=[Uri]$Dependency.url
+    if($uri.Scheme -ne 'https' -or -not $uri.AbsoluteUri.StartsWith('https://github.com/shinchiro/mpv-winbuild-cmake/releases/download/',[StringComparison]::Ordinal) -or $Dependency.sha256 -notmatch '^[0-9a-f]{64}$' -or $Dependency.archiveBytes -le 0 -or $Dependency.archiveBytes -gt 268435456){throw 'Invalid pinned upstream playback dependency.'}
+    $partial=$Destination + '.' + [Guid]::NewGuid().ToString('N') + '.partial'
+    try {
+        Invoke-WebRequest -UseBasicParsing -Uri $uri.AbsoluteUri -OutFile $partial -TimeoutSec 300 -Headers @{'User-Agent'='BeastScreen-Installer'}
+        if((Get-Item -LiteralPath $partial).Length -ne $Dependency.archiveBytes -or (Get-FileHash -LiteralPath $partial -Algorithm SHA256).Hash -ine $Dependency.sha256){throw 'The upstream playback download failed size or SHA256 verification. Nothing was installed.'}
+        Move-Item -LiteralPath $partial -Destination $Destination
+    } finally {if(Test-Path -LiteralPath $partial){Remove-Item -LiteralPath $partial -Force}}
+}
+function Complete-PlaybackRuntime([string]$Unpacked, [string]$Stage, $Info) {
+    if($null -eq $Info.PSObject.Properties['playbackRuntime'] -or $Info.playbackRuntime -ne 'download-upstream'){throw 'This installer requires a package declaring the upstream playback runtime policy.'}
+    foreach($relative in @('native/libmpv-2.dll','tools/ffmpeg.exe')){if(Test-Path -LiteralPath (Join-Path $Unpacked $relative)){throw 'Codec binaries must be downloaded from upstream, not included in the application ZIP.'}}
+    $spec=Get-Content -LiteralPath (Join-Path $Unpacked 'native-dependencies.json') -Raw | ConvertFrom-Json
+    $system=if([Environment]::Is64BitProcess){'System32'}else{'Sysnative'}
+    $tar=Join-Path (Join-Path ([Environment]::GetFolderPath('Windows')) $system) 'tar.exe'
+    if(-not (Test-Path -LiteralPath $tar -PathType Leaf)){throw 'Windows built-in tar.exe is unavailable. This package requires Windows 11 24H2 or newer.'}
+    $files=@()
+    foreach($entry in @(@{name='mpv';member='libmpv-2.dll';folder='native';hash=$spec.mpv.dllSha256},@{name='ffmpeg';member='ffmpeg.exe';folder='tools';hash=$spec.ffmpeg.exeSha256})){
+        $dependency=$spec.($entry.name); $archive=Join-Path $Stage ($entry.name + '.7z')
+        Receive-PinnedPlaybackArchive $dependency $archive
+        $directory=Join-Path $Unpacked $entry.folder; [IO.Directory]::CreateDirectory($directory)|Out-Null
+        # Only this exact root member is extracted from the checksum-pinned archive.
+        & $tar '-xf' $archive '-C' $directory '--' $entry.member
+        if($LASTEXITCODE -ne 0){throw ('Windows tar could not extract the verified ' + $entry.name + ' archive.')}
+        $file=Join-Path $directory $entry.member
+        if(-not (Test-Path -LiteralPath $file -PathType Leaf) -or $entry.hash -notmatch '^[0-9a-f]{64}$' -or (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash -ine $entry.hash){throw 'The extracted playback file failed SHA256 verification.'}
+        $files+=Join-Path $entry.folder $entry.member
+    }
+    return ,$files
+}
 function Stop-OwnedPlayer([string]$Root) {
     foreach ($process in @(Get-Process -Name BeastScreen -ErrorAction SilentlyContinue)) {
         try { $path = $process.Path } catch { continue }
@@ -266,6 +297,8 @@ namespace BeastScreenInstaller {
         if (-not (Test-Path -LiteralPath $releaseManifest)) { throw 'The package is missing its application manifest.' }
         $info = Get-Content -LiteralPath $releaseManifest -Raw | ConvertFrom-Json
         if ($info.product -ne $script:Product -or $info.version -ne $release.tag_name -or $info.architecture -ne 'x64' -or $info.databaseSchema -ne 1) { throw 'Package identity, architecture or schema does not match this installer.' }
+        $runtimeFiles=Complete-PlaybackRuntime $unpacked $stage $info
+        $files=@($files) + @($runtimeFiles)
         [IO.Directory]::CreateDirectory((Join-Path $root 'versions')) | Out-Null
         $relative = 'versions\' + $release.tag_name + '-' + [Guid]::NewGuid().ToString('N')
         $candidate = Join-Path $root $relative

@@ -13,7 +13,7 @@ public sealed class NativePlaybackTests
     private static string Repository => Path.GetFullPath("../../../../../", AppContext.BaseDirectory);
     private static string Fixtures => Path.Combine(Repository, "artifacts", "fixtures", "extended");
     private static Dictionary<string, string> Options => new() { ["vo"] = "null", ["ao"] = "null", ["hwdec"] = "no", ["gpu-api"] = "auto" };
-    private static string PlayerExecutable => Path.Combine(Repository, "src", "BeastScreen.Desktop", "bin", "Release", "net10.0-windows10.0.22000.0", "win-x64", "BeastScreen.exe");
+    private static string PlayerExecutable => Path.Combine(Repository, "src", "BeastScreen.Desktop", "bin", "Release", "net10.0-windows", "win-x64", "BeastScreen.exe");
 
     [Theory]
     [InlineData("h264.mp4")]

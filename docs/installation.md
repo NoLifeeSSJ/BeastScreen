@@ -1,19 +1,25 @@
 # Installation and maintenance
 
-**No release has been published or qualified yet.** There is currently no working public release installation command. The script must report an unavailable release rather than fall back to building source or executing unverified downloaded text.
+The first public preview is **v0.1.0-preview.1**, for Windows 11 x64 24H2/build 26100 or newer. It is unsigned and has not completed full pristine-machine/hardware qualification. Confirm the release and assets at https://github.com/NoLifeeSSJ/BeastScreen/releases/tag/v0.1.0-preview.1.
 
-After a real release exists, download its `BeastScreen-Install.ps1` to disk over HTTPS, inspect it, and run it with Windows PowerShell 5.1 or PowerShell 7. The repository is `NoLifeeSSJ/BeastScreen`; asset names are `BeastScreen-v<version>-win-x64.zip` and `SHA256SUMS.txt` from the same resolved release. Native ARM64 and Windows 10 packages are not offered.
-
-The following are maintenance syntax examples, **not evidence that an unpublished version can be installed**:
+Run this in PowerShell. It downloads the versioned installer to disk, then runs it; ExecutionPolicy Bypass applies only to that child process.
 
 ```powershell
-# Run an inspected local installer, selecting a real version once published:
-.\BeastScreen-Install.ps1 -Action Install -Version v0.1.0
-.\BeastScreen-Install.ps1 -Action Install -InstallDirectory "$env:LOCALAPPDATA\Programs\BeastScreen" -DesktopShortcut -RegisterFileAssociations
+& {
+    $ErrorActionPreference = 'Stop'
+    $installer = Join-Path $env:TEMP ('BeastScreen-Install-' + [guid]::NewGuid().ToString('N') + '.ps1')
+    Invoke-WebRequest -UseBasicParsing 'https://github.com/NoLifeeSSJ/BeastScreen/releases/download/v0.1.0-preview.1/BeastScreen-Install.ps1' -OutFile $installer
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File $installer -Action Install -Version v0.1.0-preview.1
+}
+```
 
-# Once installed, use the maintenance copy (supply your custom directory if used):
+The application includes .NET. Installation needs internet access to GitHub and downloads checksum-pinned mpv/FFmpeg archives directly from their upstream distributor; they are not bundled in our app ZIP. Windows built-in tar.exe extracts them. No SDK, Visual Studio, Git or separately installed 7-Zip is needed. Local playback works offline after installation. Preview installation must name the explicit version because GitHub's latest endpoint excludes prereleases. Native ARM64 and Windows 10 packages are not offered.
+
+Maintenance commands (supply your custom install directory if used):
+
+```powershell
 & C:\BeastScreen\app\BeastScreen-Install.ps1 -Action Launch
-& C:\BeastScreen\app\BeastScreen-Install.ps1 -Action Update
+& C:\BeastScreen\app\BeastScreen-Install.ps1 -Action Update -Version v0.1.0-preview.1
 & C:\BeastScreen\app\BeastScreen-Install.ps1 -Action Repair
 & C:\BeastScreen\app\BeastScreen-Install.ps1 -Action Rollback
 & C:\BeastScreen\app\BeastScreen-Install.ps1 -Action Uninstall
@@ -31,4 +37,4 @@ Default layout:
 - `C:\BeastScreen\downloads`: isolated temporary download staging.
 - `%LOCALAPPDATA%\BeastScreen`: SQLite, preferences, cache and future redacted logs; preserved by default.
 
-The installer resolves one release before fetching assets, verifies its package checksum, bounds and confines extraction, runs a startup check and read-only database compatibility check, coordinates owned-player shutdown and atomically activates state. It takes an exclusive installation lock and refuses to claim unrelated nonempty directories. Removal follows recorded file ownership and leaves extra files intact. A checksum is not a publisher signature. A third-party source/licence audit and actual installer lifecycle checks are mandatory before publication.
+The installer resolves one release before fetching assets, verifies its package checksum, bounds and confines extraction, runs a startup check and read-only database compatibility check, coordinates owned-player shutdown and atomically activates state. It takes an exclusive installation lock and refuses to claim unrelated nonempty directories. Removal follows recorded file ownership and leaves extra files intact. A checksum is not a publisher signature. The ZIP includes the notices for its redistributed dependencies; matching application and Vulkan source archives accompany the release. Full Windows 11 clean-machine acceptance remains a stable-release requirement.

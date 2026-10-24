@@ -8,13 +8,16 @@
     "sha256": "efc719eff3dc5954b4a5efc800632808bcec01cc9034940dd14e5eb7fe9ea633",
     "dllSha256": "04e4d27dc385dc18ddd93fbe69c75e635b864f3c6ec53a9122df54c2f7842f4a",
     "provenance": "https://github.com/shinchiro/mpv-winbuild-cmake/actions/runs/39518569492",
-    "redistributionAudit": "pending exact transitive source and licensing inventory"
+    "archiveBytes": 31622190,
+    "redistributionAudit": "Not included in BeastScreen release assets; installer downloads this exact archive directly from the upstream distributor."
   },
   "ffmpeg": {
     "version": "git-9a861e968-20261021",
     "url": "https://github.com/shinchiro/mpv-winbuild-cmake/releases/download/20261021/ffmpeg-x86_64-git-9a861e968.7z",
     "sha256": "fc9c135b799b410ffc78517f428904c299bc64cd8144f21f63f84fcd8c35ea19",
-    "redistributionAudit": "pending exact transitive source and licensing inventory"
+    "archiveBytes": 27422861,
+    "exeSha256": "a1bcba486cce341eb033522f0625bb356ae17b1d124a2bc59cfa22540db81d4b",
+    "redistributionAudit": "Not included in BeastScreen release assets; installer downloads this exact archive directly from the upstream distributor."
   },
   "vulkanLoader": {
     "version": "1.4.366",

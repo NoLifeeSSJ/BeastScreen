@@ -17,6 +17,20 @@ try {
     Assert-True (Test-Within (Join-Path $temp 'child') $temp) 'Child path should be contained.'
     Assert-True (-not (Test-Within ($temp + '-outside') $temp)) 'Sibling prefix must not count as contained.'
     Assert-True (-not (Test-Within (Join-Path $temp '../escape') $temp)) 'Parent traversal must not count as contained.'
+    $spec=Get-Content (Join-Path (Split-Path $PSScriptRoot -Parent) 'native-dependencies.json') -Raw|ConvertFrom-Json
+    $dependency=$spec.mpv
+    $originalUrl=$dependency.url
+    $dependency.url='https://example.org/untrusted.7z'
+    Assert-Throws { Receive-PinnedPlaybackArchive $dependency (Join-Path $temp 'untrusted.7z') } 'An unexpected upstream origin was accepted.'
+    $dependency.url=$originalUrl
+    $dependency.sha256='invalid'
+    Assert-Throws { Receive-PinnedPlaybackArchive $dependency (Join-Path $temp 'invalid.7z') } 'An invalid upstream checksum was accepted.'
+    $dependency.sha256=$spec.ffmpeg.sha256; $dependency.archiveBytes=268435457
+    Assert-Throws { Receive-PinnedPlaybackArchive $dependency (Join-Path $temp 'oversized.7z') } 'An oversized upstream archive was accepted.'
+    Assert-Throws { Complete-PlaybackRuntime $temp $temp ([pscustomobject]@{}) } 'A package without the upstream runtime policy was accepted.'
+    $runtimeRoot=Join-Path $temp 'runtime'; New-Item -ItemType Directory (Join-Path $runtimeRoot 'native') -Force|Out-Null
+    [IO.File]::WriteAllText((Join-Path $runtimeRoot 'native/libmpv-2.dll'),'unexpected bundled codec')
+    Assert-Throws { Complete-PlaybackRuntime $runtimeRoot $temp ([pscustomobject]@{playbackRuntime='download-upstream'}) } 'Bundled codec bytes bypassed the upstream download policy.'
     $package=Join-Path $temp 'package.zip'; $manifest=Join-Path $temp 'SHA256SUMS.txt'
     New-TestZip $package @('BeastScreen.exe','native/libmpv-2.dll')
     $hash=(Get-FileHash $package -Algorithm SHA256).Hash.ToLowerInvariant()

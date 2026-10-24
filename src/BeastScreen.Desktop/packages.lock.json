@@ -1,7 +1,7 @@
 {
   "version": 1,
   "dependencies": {
-    "net10.0-windows10.0.22000": {
+    "net10.0-windows7.0": {
       "CommunityToolkit.Mvvm": {
         "type": "Transitive",
         "resolved": "8.4.2",
@@ -60,7 +60,7 @@
         }
       }
     },
-    "net10.0-windows10.0.22000/win-x64": {
+    "net10.0-windows7.0/win-x64": {
       "SQLitePCLRaw.lib.e_sqlite3": {
         "type": "Transitive",
         "resolved": "2.1.13",

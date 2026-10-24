@@ -1,6 +1,6 @@
 # Dependency provenance and distribution
 
-Checked on 2026-10-24 against Microsoft's .NET release metadata, NuGet flat-container version indexes, the mpv project's Windows build documentation, and the selected upstream build release. Network policy blocks `learn.microsoft.com`, `mpv.io` and `api.github.com` here; official source documentation was read through `raw.githubusercontent.com` instead.
+Checked on 2026-10-24 against Microsoft's .NET release metadata, NuGet flat-container version indexes, the mpv project's Windows build documentation, and the selected upstream build release. Official source documentation, release metadata and GitHub asset digests were inspected; archive hashes remain pinned in the repository.
 
 | Component | Pin | Evidence / licensing |
 | --- | --- | --- |
@@ -8,7 +8,7 @@ Checked on 2026-10-24 against Microsoft's .NET release metadata, NuGet flat-cont
 | Runtime | 10.0.13, self-contained win-x64 | Microsoft's active .NET 10 LTS release; [support/OS table](https://github.com/dotnet/core/blob/main/release-notes/10.0/supported-os.md) |
 | CommunityToolkit.Mvvm | 8.4.2 | NuGet, MIT; content hashes in lockfiles |
 | Microsoft.Data.Sqlite / Core | 10.0.13 | NuGet, MIT; content hashes in lockfiles |
-| SQLitePCLRaw bundle/core/lib/provider | 2.1.13 | NuGet; SQLite public domain, wrapper Apache-2.0; verify packaged notices before release |
+| SQLitePCLRaw bundle/core/lib/provider | 2.1.13 | NuGet; SQLite public domain, wrapper Apache-2.0; packaged licence and NOTICE retained |
 | libmpv | 20261021, mpv e471496c56 | shinchiro x86_64 baseline build, **not x86-64-v3**; upstream URL, archive SHA256, DLL SHA256 and workflow provenance in native-dependencies.json |
 | FFmpeg helper | 20261021, 9a861e968 | Same upstream build pipeline; only ffmpeg.exe (no ffprobe in this asset); pinned archive hash |
 | Vulkan loader / headers | 1.4.366, exact full commits | Khronos source ZIPs with pinned SHA256; loader built locally with static MSVC runtime; source retains Apache-2.0/MIT/per-file exceptions |
@@ -18,11 +18,15 @@ The selected libmpv DLL and FFmpeg executable both import `vulkan-1.dll`, includ
 
 The selected FFmpeg executable embeds `--enable-gpl --enable-version3` and no `--enable-nonfree` flag, with OpenSSL and the codec libraries listed by its full build configuration. This is useful audit evidence, not a complete rights/source audit. The helper build explicitly disables ffprobe; BeastScreen uses FFmetadata output for local tags.
 
-## Release gate
+## Release payload and upstream downloads
 
-The application code is GPL-3.0-or-later, compatible with choosing GPLv3 terms for GPLv2-or-later mpv code. That choice alone **does not complete distribution obligations**. The supplied prebuilt mpv/FFmpeg archives do not contain an exact complete inventory/source bundle for all static dependencies. A build-script repository link is not a substitute for complete corresponding source.
+The application ZIP excludes mpv and FFmpeg binaries. The installer downloads their exact pinned archives directly from the upstream distributor, checks the archive size and SHA256, extracts only the required root member with Windows built-in tar.exe, then verifies that file's SHA256. Initial installation therefore needs internet access to GitHub; local playback works offline afterward. No SDK, Git, Visual Studio or separately installed 7-Zip is required on the destination Windows 11 machine.
 
-Before publishing, obtain exact source revisions, configuration/patches, build scripts and licence texts for all included native components (FFmpeg, mpv, libplacebo, libass and each compiled dependency), inspect GPL/nonfree configuration, verify redistribution rights, and stage complete matching materials in `artifacts/audited-corresponding-source` with a verified `SOURCE-MANIFEST.sha256`. Record evidence in docs/release-audit.json. Packaging with `-ForRelease` and the release workflow fail closed until these checks and Windows acceptance are recorded.
+The complete transitive source/licence inventory for those prebuilt codec archives remains unestablished. They must not be repackaged into our release ZIP until matching complete source and notices are obtained. The preview uses upstream delivery rather than claiming that audit is complete.
+
+The redistributed Vulkan loader is built from the exact loader/header commits in docs/native-source-manifest.json. Their complete source ZIPs and notices accompany the release. The application source/build scripts are provided separately. Package-provided .NET runtime and CommunityToolkit notices, Microsoft.Data.Sqlite's MIT licence, and SQLitePCLRaw's Apache licence/NOTICE accompany the app. SQLitePCLRaw 2.1.13's NuGet metadata declares Apache-2.0; its licence/notice text was retrieved from upstream v2.1.12 because no exact 2.1.13 source tag was found.
+
+Preview publication is explicitly authorized by the user and requires the tagged build/tests and installer checks. Stable publication still requires full Windows 11 playback and clean-machine acceptance. The audit record distinguishes those requirements in docs/release-audit.json.
 
 The local SDK archive used here is `https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.402/dotnet-sdk-10.0.402-linux-x64.tar.gz`, SHA512 `1904a98dda2db34ba78ba3c4fb1b224455329af91c341d83547843c1839e112b04ae699ee92fa2449a8f62249196a938723078c0c60b9f65c88539d5687729c2`.
 

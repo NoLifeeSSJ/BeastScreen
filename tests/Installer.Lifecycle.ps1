@@ -36,6 +36,8 @@ try {
     New-FixtureRelease 'v0.1.0'; New-FixtureRelease 'v0.2.0'
     $Action='Install'; Invoke-BeastScreenInstaller; $first=(Read-InstallState $InstallDirectory).current
     Assert-Lifecycle (Test-Path (Join-Path (Join-Path $InstallDirectory $first) 'BeastScreen.exe')) 'Fresh install failed'
+    Assert-Lifecycle (Test-Path (Join-Path (Join-Path $InstallDirectory $first) 'native/libmpv-2.dll')) 'Upstream libmpv was not installed'
+    Assert-Lifecycle (Test-Path (Join-Path (Join-Path $InstallDirectory $first) 'tools/ffmpeg.exe')) 'Upstream FFmpeg was not installed'
     Invoke-BeastScreenInstaller; Assert-Lifecycle ((Read-InstallState $InstallDirectory).versions.Count -eq 1) 'Repeated install created another version'
     $script:FixtureLatest='v0.2.0'; $Action='Update'; Invoke-BeastScreenInstaller; $updated=Read-InstallState $InstallDirectory
     Assert-Lifecycle ($updated.previous -eq $first -and $updated.current -ne $first) 'Update did not preserve previous version'
@@ -44,6 +46,8 @@ try {
     $script:CorruptFixture=$true; $Action='Update'; $failed=$false; try { Invoke-BeastScreenInstaller } catch {$failed=$true}; Assert-Lifecycle $failed 'Corrupt update was accepted'; Assert-Lifecycle ((Read-InstallState $InstallDirectory).current -eq $repaired) 'Corrupt update changed active version'; $script:CorruptFixture=$false
     $current=Join-Path $InstallDirectory $repaired; [IO.File]::WriteAllText((Join-Path $current 'unowned.txt'),'preserve')
     $Action='Uninstall'; Invoke-BeastScreenInstaller; Assert-Lifecycle (Test-Path (Join-Path $current 'unowned.txt')) 'Uninstall deleted unowned files'; Assert-Lifecycle (-not (Test-Path (Join-Path $current 'BeastScreen.exe'))) 'Uninstall left owned executable'
+    Assert-Lifecycle (-not (Test-Path (Join-Path $current 'native/libmpv-2.dll'))) 'Uninstall left the downloaded owned runtime'
+    Assert-Lifecycle (-not (Test-Path (Join-Path $current 'tools/ffmpeg.exe'))) 'Uninstall left the downloaded owned helper'
     $reports=Join-Path (Split-Path $PSScriptRoot -Parent) 'artifacts/test-results'; New-Item -ItemType Directory -Path $reports -Force | Out-Null
     [IO.File]::WriteAllText((Join-Path $reports 'installer-lifecycle.json'), (@{ passed=$script:Assertions; failed=0; environment=[Environment]::OSVersion.VersionString; limitations='Controlled release transport and registration fixture. Real self-contained executable/native startup. Not clean Windows 11 or shortcut/association qualification.' } | ConvertTo-Json))
     Write-Output ('Passed ' + $script:Assertions + ' controlled Windows installer lifecycle assertions. Shortcut/association and pristine-OS acceptance remain separate.')

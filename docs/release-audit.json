@@ -1,5 +1,5 @@
 {
-  "nativeRedistributionApproved": false,
+  "nativeRedistributionApproved": true,
   "windows11PlaybackAccepted": false,
   "cleanMachineInstallerAccepted": false,
   "testAccess": {
@@ -7,6 +7,11 @@
     "windowsServerAutomation": "available through GitHub Actions"
   },
   "evidence": [
+    {
+      "kind": "preview-publication-authorization",
+      "result": "User explicitly requested publication after reporting operation on Windows 11. Publish as v0.1.0-preview.1, not as a qualified stable release.",
+      "validation": "Tagged release workflow must build, run core/native tests, verify corresponding-source hashes and run installer lifecycle checks before publication, then install and uninstall from the actual public release."
+    },
     {
       "kind": "user-reported-windows11-playback",
       "result": "User reports: it works on win11 now",
@@ -28,8 +33,16 @@
     }
   ],
   "blockers": [
-    "Selected prebuilt mpv and FFmpeg archives do not include an exact transitive source/license inventory. Obtain matching complete corresponding source and build scripts before redistributing.",
-    "Run the playback prototype and manual rendering/audio/focus/GPU tests on Windows 11 x64.",
-    "Run fresh/repeated install, update, repair, rollback, uninstall, corrupt-checksum and interrupted-operation tests on a clean Windows 11 machine without developer tools."
-  ]
+    "Stable release: full Windows 11 interactive rendering/audio/focus/GPU acceptance remains pending.",
+    "Stable release: pristine Windows 11 installer lifecycle and shortcut/association qualification remain pending.",
+    "Bundling mpv/FFmpeg in our own release ZIP remains blocked until exact transitive source/licensing obligations are satisfied."
+  ],
+  "previewPublicationAuthorized": true,
+  "distributionScope": {
+    "policy": "Our release ZIP excludes libmpv-2.dll and ffmpeg.exe. The installer downloads the pinned archives directly from their upstream distributor, verifies archive and extracted-file hashes, and records the added files for uninstall.",
+    "redistributedNative": "Vulkan loader built from the exact source archives in docs/native-source-manifest.json; SQLite from its locked NuGet package.",
+    "notices": "Package runtime license/third-party notices, CommunityToolkit notices, Microsoft.Data.Sqlite MIT, SQLitePCLRaw Apache-2.0 and NOTICE, Vulkan source notices are included. SQLitePCLRaw license and notice text were retrieved from upstream v2.1.12; the locked 2.1.13 NuGet metadata declares Apache-2.0 and Copyright 2014-2024 SourceGear LLC.",
+    "source": "Release assets include the application source/build scripts and the exact Vulkan loader/header source archives.",
+    "limit": "This does not certify the complete transitive source inventory of upstream mpv/FFmpeg builds. Do not add those binaries to our release assets without completing that audit."
+  }
 }

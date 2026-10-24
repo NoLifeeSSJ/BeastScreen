@@ -16,11 +16,16 @@ jobs:
         with:
           persist-credentials: false
       - name: Check tag and release acceptance evidence
+        id: acceptance
         shell: pwsh
         run: |
           if ($env:GITHUB_REF -notmatch '^refs/tags/v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$') { throw 'Release must run from a version tag' }
           $audit = Get-Content docs/release-audit.json -Raw | ConvertFrom-Json
-          if (-not $audit.nativeRedistributionApproved -or -not $audit.windows11PlaybackAccepted -or -not $audit.cleanMachineInstallerAccepted -or $audit.evidence.Count -lt 3) { throw 'Windows acceptance and complete native corresponding-source/license audit are required before publishing.' }
+          $preview=$env:GITHUB_REF_NAME -match '-preview\.\d+$'
+          if(-not $audit.nativeRedistributionApproved){throw 'Source and licensing for the binaries in our ZIP must be verified.'}
+          if($preview){if(-not $audit.previewPublicationAuthorized){throw 'Preview publication is not authorized.'}}
+          elseif(-not $audit.windows11PlaybackAccepted -or -not $audit.cleanMachineInstallerAccepted){throw 'Stable release requires full Windows 11 and clean-machine acceptance.'}
+          "preview=$($preview.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
       - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
         with:
           global-json-file: global.json
@@ -40,11 +45,28 @@ jobs:
           dotnet test tests/BeastScreen.PlaybackTests -c Release --no-build
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           ./scripts/Restore-AuditedSources.ps1
-          ./scripts/Package.ps1 -Version $env:GITHUB_REF_NAME -ForRelease
+          if($env:GITHUB_REF_NAME -match '-preview\.\d+$'){./scripts/Package.ps1 -Version $env:GITHUB_REF_NAME -ForRelease -Preview}else{./scripts/Package.ps1 -Version $env:GITHUB_REF_NAME -ForRelease}
+          ./tests/Installer.Lifecycle.ps1 -PublishedApplication (Join-Path $PWD ('artifacts/publish-' + $env:GITHUB_REF_NAME))
       - name: Publish verified assets and notes
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create $env:GITHUB_REF_NAME --verify-tag --title "BeastScreen $env:GITHUB_REF_NAME" --notes-file artifacts/release/release-notes.md artifacts/release/*
+          $arguments=@('release','create',$env:GITHUB_REF_NAME,'--verify-tag','--title',"BeastScreen $env:GITHUB_REF_NAME",'--notes-file','artifacts/release/release-notes.md')
+          if($env:GITHUB_REF_NAME -match '-preview\.\d+$'){$arguments+='--prerelease'}
+          $arguments+=@(Get-ChildItem artifacts/release -File|ForEach-Object{$_.FullName})
+          & gh @arguments
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Verify actual public release installation
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $root=Join-Path $env:RUNNER_TEMP 'BeastScreen-public-release-check'
+          try {
+            ./BeastScreen-Install.ps1 -Action Install -Version $env:GITHUB_REF_NAME -InstallDirectory (Join-Path $root 'app') -DownloadDirectory (Join-Path $root 'downloads')
+            ./BeastScreen-Install.ps1 -Action Uninstall -InstallDirectory (Join-Path $root 'app') -DownloadDirectory (Join-Path $root 'downloads')
+          } catch {
+            gh release edit $env:GITHUB_REF_NAME --draft
+            throw 'Public install failed; the release was returned to draft for investigation.'
+          }

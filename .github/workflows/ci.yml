@@ -59,7 +59,7 @@ jobs:
         run: |
           ./scripts/Generate-Fixtures.ps1
           $fixture = (Get-ChildItem artifacts/fixtures -Filter *.mkv).FullName
-          $exe = (Resolve-Path src/BeastScreen.Desktop/bin/Release/net10.0-windows10.0.22000.0/win-x64/BeastScreen.exe).Path
+          $exe = (Resolve-Path src/BeastScreen.Desktop/bin/Release/net10.0-windows/win-x64/BeastScreen.exe).Path
           $result = Join-Path $PWD 'artifacts/test-results/playback.json'
           $p = Start-Process $exe -ArgumentList @('--smoke-test', ('"' + $fixture + '"'), '--result', ('"' + $result + '"')) -PassThru
           if (-not $p.WaitForExit(60000)) { $p.Kill(); throw 'Windows playback smoke timed out' }
@@ -90,6 +90,11 @@ jobs:
             }
             exit $testExit
           }
+      - name: Installer runtime downloads on Windows PowerShell 5.1
+        if: always() && steps.build.outcome == 'success'
+        shell: powershell
+        run: |
+          try { ./tests/Installer.Lifecycle.ps1 -PublishedApplication (Join-Path $PWD 'artifacts/publish-v0.1.0') } catch { Write-Output ('::error::' + $_.Exception.ToString().Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')); exit 1 }
       - name: Preserve test evidence
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6

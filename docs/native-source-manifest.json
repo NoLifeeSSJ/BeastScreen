@@ -1,4 +1,18 @@
 {
-  "completeAudit": false,
-  "components": []
+  "completeAudit": true,
+  "scope": "Sources for the Vulkan loader and headers redistributed by BeastScreen. mpv/FFmpeg binaries are excluded from our ZIP and downloaded directly from upstream by the installer.",
+  "components": [
+    {
+      "file": "Vulkan-Loader-3187e1e4d463ddf7f60f0bbaf26c7d7b7e40ca34.zip",
+      "url": "https://github.com/KhronosGroup/Vulkan-Loader/archive/3187e1e4d463ddf7f60f0bbaf26c7d7b7e40ca34.zip",
+      "sha256": "c1a4f1ce8f45795d56c316474f217b226ead62c9dcdc29ee7bb0a1bf8865ee00",
+      "license": "Apache-2.0 and permissive per-file exceptions"
+    },
+    {
+      "file": "Vulkan-Headers-438f1a2a694b64e21464d70a881bf05bfbe89d88.zip",
+      "url": "https://github.com/KhronosGroup/Vulkan-Headers/archive/438f1a2a694b64e21464d70a881bf05bfbe89d88.zip",
+      "sha256": "0073cfd7d60b2dd030e535bcda07bd1c1df0d2eb7991bfb36f8a09178ef00e22",
+      "license": "Apache-2.0/MIT and source notices"
+    }
+  ]
 }
