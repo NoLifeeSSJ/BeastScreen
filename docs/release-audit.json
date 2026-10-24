@@ -8,6 +8,13 @@
   },
   "evidence": [
     {
+      "kind": "expanded-windows-server-playback",
+      "sourceCommit": "49e92ec08218dae510c78a73e5d0dde327ba9a75",
+      "url": "https://github.com/NoLifeeSSJ/BeastScreen/actions/runs/40128220184",
+      "result": "50 core and 15 native/integration cases passed, including codec decoding, actual-player HTTP recovery/cancellation/radio/HLS/DASH, bookmark privacy and failure exit codes; installer and baseline smoke checks also passed",
+      "limits": "Synthetic low-resolution fixtures, WARP/null audio and controlled loopback HTTP on Windows Server. Windows 11, physical output/networks, clean-machine installation and native redistribution rights remain unapproved."
+    },
+    {
       "kind": "windows-server-automation",
       "sourceCommit": "42c7cb802d8e8814d7d4ebc0f6dc93e06e5bb0bd",
       "url": "https://github.com/NoLifeeSSJ/BeastScreen/actions/runs/40123983733",
