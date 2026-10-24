@@ -163,7 +163,7 @@ public partial class MainWindow : Window
                 case "shortcuts":
                     var shortcuts = Prompt("Keyboard shortcuts", "JSON object: command names and WPF key gestures", JsonSerializer.Serialize(model.Preferences.Shortcuts));
                     if (shortcuts is not null) { var parsed = JsonSerializer.Deserialize<Dictionary<string, string>>(shortcuts) ?? throw new ArgumentException("Enter a shortcut object."); foreach (var p in parsed) _ = new KeyGestureConverter().ConvertFromInvariantString(p.Value); model.Preferences.Shortcuts = parsed; model.SavePreferencesCommand.Execute(null); } break;
-                case "diagnostics": var diagnostic = new SaveFileDialog { Filter = "Text report|*.txt", FileName = "BeastScreen-diagnostics.txt" }; if (diagnostic.ShowDialog(this) == true) File.WriteAllText(diagnostic.FileName, $"BeastScreen {typeof(App).Assembly.GetName().Version}\n{Environment.OSVersion}\n{model.Diagnostics}\n{Redaction.Clean(model.Error)}\nNo media paths, credentials or URL parameters included.\n"); break;
+                case "diagnostics": var diagnostic = new SaveFileDialog { Filter = "Text report|*.txt", FileName = "BeastScreen-diagnostics.txt" }; if (diagnostic.ShowDialog(this) == true) File.WriteAllText(diagnostic.FileName, $"BeastScreen {typeof(App).Assembly.GetName().Version}\n{Environment.OSVersion}\n{model.Diagnostics}\nPlayback error present: {model.HasError}\nMedia paths, credentials, URLs and free-form error text omitted.\n"); break;
             }
         }
         catch (Exception ex) { model.Error = Redaction.Clean(ex.Message); }

@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 param([string]$FFmpeg = (Join-Path (Split-Path $PSScriptRoot -Parent) '.native\tools\ffmpeg.exe'), [string]$OutputDirectory = (Join-Path (Split-Path $PSScriptRoot -Parent) 'artifacts\fixtures'))
 $ErrorActionPreference = 'Stop'
 New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null

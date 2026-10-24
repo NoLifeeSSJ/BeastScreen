@@ -18,6 +18,7 @@ public static class PlaylistFile
         if (depth > 4 || !active.Add(path)) throw new InvalidDataException("Playlist nesting is too deep or contains a cycle.");
         if (new FileInfo(path).Length > MaxBytes) throw new InvalidDataException("Playlist exceeds the 4 MiB size limit.");
         var entries = File.ReadAllLines(path, Encoding.UTF8).Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
+        if (entries.Any(x => x.StartsWith("#EXT-X-", StringComparison.Ordinal))) { result.Add(path); active.Remove(path); return; } // HLS is one stream, not a queue of segments.
         if (Path.GetExtension(path).Equals(".pls", StringComparison.OrdinalIgnoreCase))
             entries = entries.Select(x => x.Trim()).Where(x => x.StartsWith("File", StringComparison.OrdinalIgnoreCase) && x.IndexOf('=') > 4)
                 .OrderBy(x => int.TryParse(x.AsSpan(4, x.IndexOf('=') - 4), out var n) ? n : int.MaxValue).Select(x => x[(x.IndexOf('=') + 1)..]).ToList();

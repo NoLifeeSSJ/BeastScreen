@@ -25,7 +25,7 @@ On Linux, restore, test the core, and cross-build WPF with `EnableWindowsTargeti
 - Selected-folder background scans, cancellation, debounced folder notifications, missing records, search/sort, paginated list/grid, favourites, resume/history, bookmarks, playlist persistence, M3U/M3U8/PLS import/export, SQLite backup/restore and relocation.
 - JSON playback/picture/audio preferences, keyboard shortcuts, fullscreen, mini player, media-key messages, per-user single instance with file forwarding, optional Open With registration, and maintenance installer source.
 
-These capabilities are implemented but Windows behaviour still needs validation. Artist/album/genre fields are supported by storage and search; automatic embedded metadata and thumbnail/artwork generation, Windows system media transport controls, website extraction and disc navigation are not delivered. No external metadata service or telemetry is enabled.
+These capabilities are implemented but Windows behaviour still needs validation. The FFmpeg helper reads embedded title/artist/album/genre tags and creates bounded, cached video frames or embedded-artwork thumbnails; artist/album/genre sorting groups the current page. Windows system media transport controls, website extraction and disc navigation are not delivered. No external metadata service or telemetry is enabled.
 
 ## Data and installation
 

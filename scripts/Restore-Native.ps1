@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 [CmdletBinding()]
 param([string]$SevenZip = 'C:\Program Files\7-Zip\7z.exe')
 Set-StrictMode -Version Latest

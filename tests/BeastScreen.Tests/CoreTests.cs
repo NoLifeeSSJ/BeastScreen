@@ -103,6 +103,10 @@ public sealed class PlaylistTests : IDisposable
     {
         var file = temp.File("radio.pls"); System.IO.File.WriteAllText(file, "[playlist]\nFile10=https://example.com/10\nFile2=https://example.com/2\nTitle2=Radio\n"); Assert.Equal(new[] { "https://example.com/2", "https://example.com/10" }, PlaylistFile.Load(file));
     }
+    [Fact] public void LocalHlsIsPassedToTheEngineAsOneStream()
+    {
+        var file = temp.File("stream.m3u8"); System.IO.File.WriteAllText(file, "#EXTM3U\n#EXT-X-TARGETDURATION:4\n#EXTINF:4,\nsegment1.ts\n#EXT-X-ENDLIST\n"); Assert.Equal(file, Assert.Single(PlaylistFile.Load(file)));
+    }
     public void Dispose() => temp.Dispose();
 }
 

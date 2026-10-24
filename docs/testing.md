@@ -4,7 +4,7 @@
 
 Environment: Debian 13 x64, .NET SDK 10.0.402 / runtime 10.0.13, FFmpeg 7.1.5 from the host, PowerShell 7.6.8 (download verified against upstream SHA256 manifest). **This is not a Windows playback qualification.**
 
-- Core suite: **37 passed, 0 failed, 0 skipped**. Includes SQLite schema guards/backup/restore/relocation, history/resume/favourites/playlists, 10,000-record paging, Unicode paths, playlist parsing/cycles/limits, forbidden protocols, redaction, JSON preferences, queue/repeat/shuffle, retry budget, cancellation/missing files, real embedded-audio tag extraction, extensionless video frame generation and corrupt/missing media helper failures.
+- Core suite: **38 passed, 0 failed, 0 skipped**. Includes SQLite schema guards/backup/restore/relocation, history/resume/favourites/playlists, 10,000-record paging, Unicode paths, playlist parsing/cycles/limits/local HLS, forbidden protocols, redaction, JSON preferences, queue/repeat/shuffle, retry budget, cancellation/missing files, real embedded-audio tag extraction, extensionless video frame generation and corrupt/missing media helper failures.
 - WPF `win-x64` cross-build: passed, **0 warnings and 0 errors**.
 - Installer helpers on PowerShell 7: **19 assertions passed**. Real ZIP extraction, traversal/absolute-path/alternate-stream/case-duplicate rejection, SHA256 corruption/duplicate-manifest rejection, atomic state backup, owned-file removal and preservation of an unowned user file.
 - Native Windows dependencies: libmpv archive and DLL, FFmpeg archive and official Vulkan source archives pinned by SHA256. PE imports inspected; missing Vulkan loader identified. Building that loader needs Windows C++ build tools and remains unrun locally.

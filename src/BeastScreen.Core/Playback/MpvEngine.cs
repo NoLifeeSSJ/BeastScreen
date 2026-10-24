@@ -12,6 +12,7 @@ public sealed class MpvEngine : IPlaybackEngine
     private Thread? worker;
     private volatile bool stopping;
     private PlaybackState state;
+    private bool networkSource;
     public event Action<PlaybackSnapshot>? Changed;
     public event Action<IReadOnlyList<MediaTrack>, IReadOnlyList<Chapter>>? TracksChanged;
     public event Action<string>? Failed;
@@ -54,6 +55,7 @@ public sealed class MpvEngine : IPlaybackEngine
     public void Open(string source, double resumeSeconds = 0)
     {
         SourcePolicy.Validate(source);
+        networkSource = SourcePolicy.IsNetwork(source);
         Set("start", Math.Max(0, resumeSeconds).ToString(CultureInfo.InvariantCulture));
         state = PlaybackState.Loading;
         Command("loadfile", source, "replace");
@@ -133,7 +135,7 @@ public sealed class MpvEngine : IPlaybackEngine
         var duration = Number("duration");
         var seekable = Get("seekable") == "yes";
         var diagnostics = $"{Get("video-codec")} · {Get("width")}×{Get("height")} · {Get("estimated-vf-fps")} fps · decoder {Get("hwdec-current")} · audio {Get("audio-codec")} {Get("audio-params/channel-count")} ch · dropped {Get("frame-drop-count")}";
-        Changed?.Invoke(new(state, Number("time-pos"), duration, seekable, duration <= 0 && !seekable, Number("volume"), Get("mute") == "yes", Get("media-title"), diagnostics));
+        Changed?.Invoke(new(state, Number("time-pos"), duration, seekable, networkSource && duration <= 0 && !seekable, Number("volume"), Get("mute") == "yes", Get("media-title"), diagnostics));
     }
 
     private void PublishTracks()
