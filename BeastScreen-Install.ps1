@@ -99,6 +99,7 @@ function Assert-PackageChecksum([string]$Package, [string]$Manifest, [string]$As
     if ((Get-FileHash -LiteralPath $Package -Algorithm SHA256).Hash.ToLowerInvariant() -cne $matchesFound[0]) { throw 'SHA256 verification failed. Nothing was installed.' }
 }
 function Expand-SafePackage([string]$Archive, [string]$Destination) {
+    Add-Type -AssemblyName System.IO.Compression
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     [IO.Directory]::CreateDirectory($Destination) | Out-Null
     Assert-NoReparsePoint $Destination

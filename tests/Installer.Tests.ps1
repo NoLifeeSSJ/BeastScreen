@@ -2,13 +2,14 @@
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 . (Join-Path (Split-Path $PSScriptRoot -Parent) 'BeastScreen-Install.ps1')
+Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $script:Passed = 0
 function Assert-True([bool]$Condition, [string]$Message) { if (-not $Condition) { throw $Message }; $script:Passed++ }
 function Assert-Throws([scriptblock]$Code, [string]$Message) { $threw = $false; try { & $Code | Out-Null } catch { $threw = $true }; Assert-True $threw $Message }
 function New-TestZip([string]$Path, [string[]]$Names) {
-    $stream = [IO.File]::Create($Path); $zip = New-Object IO.Compression.ZipArchive($stream, [IO.Compression.ZipArchiveMode]::Create)
-    try { foreach ($name in $Names) { $entry=$zip.CreateEntry($name); $writer=New-Object IO.StreamWriter($entry.Open()); try { $writer.Write('test content') } finally { $writer.Dispose() } } } finally { $zip.Dispose(); $stream.Dispose() }
+    $stream = [IO.File]::Create($Path); $zip=$null
+    try { $zip = New-Object IO.Compression.ZipArchive($stream, [IO.Compression.ZipArchiveMode]::Create); foreach ($name in $Names) { $entry=$zip.CreateEntry($name); $writer=New-Object IO.StreamWriter($entry.Open()); try { $writer.Write('test content') } finally { $writer.Dispose() } } } finally { if($null -ne $zip){$zip.Dispose()}; $stream.Dispose() }
 }
 $temp = Join-Path ([IO.Path]::GetTempPath()) ('BeastScreen-installer-tests-' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory $temp | Out-Null
@@ -45,4 +46,5 @@ try {
     Assert-True (Test-Path (Join-Path $version 'BeastScreen.exe')) 'Recovery deleted a version whose activation was already committed.'
     $state.versions[0].directory='../repo'; Write-InstallState $root $state; Assert-Throws { Read-InstallState $root } 'Escaping installed-version state was accepted.'
     Write-Output ('Passed ' + $script:Passed + ' installer helper assertions. These do not substitute for the Windows lifecycle test.')
-} finally { Remove-Item -LiteralPath $temp -Recurse -Force }
+} catch { Write-Output ('::error::' + $_.Exception.ToString().Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')); throw }
+finally { Remove-Item -LiteralPath $temp -Recurse -Force }
