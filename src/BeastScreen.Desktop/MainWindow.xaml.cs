@@ -184,12 +184,14 @@ public partial class MainWindow : Window
             checks["duration"] = model.LastSnapshot?.Duration > 3;
             model.PlayPauseCommand.Execute(null); await WaitFor(() => model.LastSnapshot?.State == PlaybackState.Paused, TimeSpan.FromSeconds(5)); checks["pauseEvent"] = true;
             model.Engine.Command("seek", "2", "absolute+exact"); await WaitFor(() => model.LastSnapshot?.Position >= 1.9, TimeSpan.FromSeconds(5)); checks["seek"] = true;
-            if (model.AudioTracks.Count > 1) { model.Engine.Set("aid", model.AudioTracks[1].Id.ToString(CultureInfo.InvariantCulture)); checks["audioTrackSwitch"] = true; }
+            if (model.AudioTracks.Count > 1) { var trackId = model.AudioTracks[1].Id.ToString(CultureInfo.InvariantCulture); model.Engine.Set("aid", trackId); await WaitFor(() => model.Engine.Get("aid") == trackId, TimeSpan.FromSeconds(5)); checks["audioTrackSwitch"] = true; }
             else throw new InvalidDataException("Fixture requires at least two audio tracks.");
             var subtitle = Path.ChangeExtension(file, ".srt"); if (!File.Exists(subtitle)) throw new FileNotFoundException("Fixture subtitle is missing.");
             model.Engine.Command("sub-add", subtitle, "select"); await WaitFor(() => model.SubtitleTracks.Count > 1, TimeSpan.FromSeconds(5)); checks["subtitleTrack"] = true;
-            Width = 900; Height = 650; await Task.Delay(200); checks["resize"] = true;
-            ToggleFullscreen(); await Task.Delay(200); checks["fullscreen"] = fullscreen; RestoreWindow();
+            var originalSize = Video.ClientSize;
+            Width = 900; Height = 650; await WaitFor(() => Video.ClientSize.Width > 0 && Video.ClientSize != originalSize, TimeSpan.FromSeconds(5)); checks["resize"] = true;
+            var resizedWidth = Video.ClientSize.Width;
+            ToggleFullscreen(); await WaitFor(() => WindowStyle == WindowStyle.None && WindowState == WindowState.Maximized && Video.ClientSize.Width > resizedWidth, TimeSpan.FromSeconds(5)); checks["fullscreen"] = true; RestoreWindow();
             model.Engine.Set("hwdec", "no"); checks["softwareFallbackRequested"] = true;
             var screenshot = Path.Combine(Path.GetDirectoryName(output)!, "smoke-frame.png"); model.Engine.Command("screenshot-to-file", screenshot, "subtitles"); await WaitFor(() => File.Exists(screenshot) && new FileInfo(screenshot).Length > 100, TimeSpan.FromSeconds(5)); checks["renderedScreenshot"] = true;
             checks["all"] = checks.Values.All(x => x);

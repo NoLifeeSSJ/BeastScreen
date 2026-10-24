@@ -44,5 +44,7 @@ try {
     $script:CorruptFixture=$true; $Action='Update'; $failed=$false; try { Invoke-BeastScreenInstaller } catch {$failed=$true}; Assert-Lifecycle $failed 'Corrupt update was accepted'; Assert-Lifecycle ((Read-InstallState $InstallDirectory).current -eq $repaired) 'Corrupt update changed active version'; $script:CorruptFixture=$false
     $current=Join-Path $InstallDirectory $repaired; [IO.File]::WriteAllText((Join-Path $current 'unowned.txt'),'preserve')
     $Action='Uninstall'; Invoke-BeastScreenInstaller; Assert-Lifecycle (Test-Path (Join-Path $current 'unowned.txt')) 'Uninstall deleted unowned files'; Assert-Lifecycle (-not (Test-Path (Join-Path $current 'BeastScreen.exe'))) 'Uninstall left owned executable'
+    $reports=Join-Path (Split-Path $PSScriptRoot -Parent) 'artifacts/test-results'; New-Item -ItemType Directory -Path $reports -Force | Out-Null
+    [IO.File]::WriteAllText((Join-Path $reports 'installer-lifecycle.json'), (@{ passed=$script:Assertions; failed=0; environment=[Environment]::OSVersion.VersionString; limitations='Controlled release transport and registration fixture. Real self-contained executable/native startup. Not clean Windows 11 or shortcut/association qualification.' } | ConvertTo-Json))
     Write-Output ('Passed ' + $script:Assertions + ' controlled Windows installer lifecycle assertions. Shortcut/association and pristine-OS acceptance remain separate.')
 } finally { if(Test-Path $fixtureRoot){Remove-Item -LiteralPath $fixtureRoot -Recurse -Force} }

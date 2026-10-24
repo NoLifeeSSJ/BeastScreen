@@ -4,10 +4,18 @@
 
 Environment: Debian 13 x64, .NET SDK 10.0.402 / runtime 10.0.13, FFmpeg 7.1.5 from the host, PowerShell 7.6.8 (download verified against upstream SHA256 manifest). **This is not a Windows playback qualification.**
 
-- Core suite: **38 passed, 0 failed, 0 skipped**. Includes SQLite schema guards/backup/restore/relocation, history/resume/favourites/playlists, 10,000-record paging, Unicode paths, playlist parsing/cycles/limits/local HLS, forbidden protocols, redaction, JSON preferences, queue/repeat/shuffle, retry budget, cancellation/missing files, real embedded-audio tag extraction, extensionless video frame generation and corrupt/missing media helper failures.
+- Core suite: **41 passed, 0 failed, 0 skipped** on Linux. Includes SQLite schema guards/backup/restore/relocation, history/resume/favourites/playlists, 10,000-record paging, Unicode paths, playlist parsing/cycles/limits/local HLS, forbidden protocols, URL/header credential redaction, JSON preferences, queue/repeat/shuffle, retry budget, cancellation/missing files, real embedded-audio tag extraction, extensionless video frame generation and corrupt/missing media helper failures.
 - WPF `win-x64` cross-build: passed, **0 warnings and 0 errors**.
-- Installer helpers on PowerShell 7: **19 assertions passed**. Real ZIP extraction, traversal/absolute-path/alternate-stream/case-duplicate rejection, SHA256 corruption/duplicate-manifest rejection, atomic state backup, owned-file removal and preservation of an unowned user file.
-- Native Windows dependencies: libmpv archive and DLL, FFmpeg archive and official Vulkan source archives pinned by SHA256. PE imports inspected; missing Vulkan loader identified. Building that loader needs Windows C++ build tools and remains unrun locally.
+- Installer helpers on PowerShell 7: **22 assertions passed**. Real ZIP extraction, traversal/absolute-path/alternate-stream/case-duplicate rejection, SHA256 corruption/duplicate-manifest rejection, atomic state backup, owned-file removal, interrupted-activation recovery and preservation of unowned files.
+- Native Windows dependencies: libmpv archive and DLL, FFmpeg archive and official Vulkan source archives pinned by SHA256. PE imports inspected; required Vulkan loader copies supplied for both libmpv and FFmpeg. The loader successfully builds in Windows CI.
+
+## Windows Server CI evidence
+
+[Run 40123368941](https://github.com/NoLifeeSSJ/BeastScreen/actions/runs/40123368941), source commit `648a200`, completed successfully on `windows-2025`: frozen restore, Release build, the then-current 38 tests, 22 installer helper assertions under **both PowerShell 7 and Windows PowerShell 5.1**, actual playback smoke, self-contained packaging, and **9 controlled installer lifecycle assertions**. The separate dependency-review job also passes.
+
+The real playback test decodes a synthetic Matroska/H.264 640×360 30 fps file with AAC audio tracks. It checks position/duration, pause, exact seeking, track selection, external SRT loading, native-window resize/fullscreen and a generated frame screenshot. WARP/software rendering and null audio are deliberate in this server environment. Physical speaker output, text appearance, input focus, hardware decode and Windows 11 behaviour remain unverified. Later stricter native-size/track assertions and shutdown/redaction changes need the next CI run before being counted as Windows-verified.
+
+The lifecycle test uses the actual self-contained executable and native startup/data checks while substituting a controlled release transport and registration observation. It exercises fresh/repeated install, update, repair, rollback, corrupt-checksum rejection, preservation of the previous active version and uninstall preserving an unowned file. It is **not** a test of real GitHub Release downloads, actual shortcut/association registration or a pristine Windows 11 installation.
 
 Results are generated under ignored `artifacts/test-results`; CI retains current-run evidence. Counts must be updated when tests change. No zero-test result counts as a pass.
 

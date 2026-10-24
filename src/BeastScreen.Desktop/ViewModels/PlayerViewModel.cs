@@ -293,7 +293,7 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
     partial void OnSelectedChapterChanged(Chapter? value) { if (value is not null) Command("seek", Number(value.Time), "absolute+exact"); }
     public void Dispose()
     {
-        SaveProgress(); progressTimer.Stop(); scanDebounce.Stop(); reconnectCancellation.Cancel(); lifetime.Cancel(); scanCancellation?.Cancel(); scanner.Dispose();
+        SaveProgress(); progressTimer.Stop(); scanDebounce.Stop(); reconnectCancellation.Cancel(); lifetime.Cancel(); scanCancellation?.Cancel(); inspector.CancelWork(); scanner.Dispose();
         Engine.Dispose(); Preferences.Volume = Volume; Preferences.Resume = ResumeEnabled; Guard(() => Preferences.Save(settingsPath)); scanCancellation?.Dispose();
     }
 }

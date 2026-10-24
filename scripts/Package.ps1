@@ -20,6 +20,11 @@ Copy-Item (Join-Path $repo 'THIRD_PARTY_NOTICES.md') $publish
 Copy-Item (Join-Path $repo 'native-dependencies.json') $publish
 # SPDX dependency inventory: NuGet content hashes are SHA512 of package bytes.
 $packages = New-Object 'Collections.Generic.List[object]'; $seen = New-Object 'Collections.Generic.HashSet[string]'
+$packages.Add(@{ SPDXID='SPDXRef-BeastScreen'; name='BeastScreen'; versionInfo=$Version; downloadLocation='https://github.com/NoLifeeSSJ/BeastScreen'; filesAnalyzed=$false; licenseDeclared='GPL-3.0-or-later'; licenseConcluded='GPL-3.0-or-later'; checksums=@(@{ algorithm='SHA256'; checksumValue=(Get-FileHash (Join-Path $publish 'BeastScreen.exe') -Algorithm SHA256).Hash.ToLowerInvariant() }) })
+$runtimeConfig=Get-Content (Join-Path $publish 'BeastScreen.runtimeconfig.json') -Raw | ConvertFrom-Json
+foreach($framework in $runtimeConfig.runtimeOptions.includedFrameworks){
+    $packages.Add(@{ SPDXID=('SPDXRef-framework-' + $framework.name); name=$framework.name; versionInfo=$framework.version; downloadLocation='NOASSERTION'; filesAnalyzed=$false; licenseDeclared='MIT'; licenseConcluded='NOASSERTION' })
+}
 foreach ($lockFile in Get-ChildItem (Join-Path $repo 'src') -Filter 'packages.lock.json' -Recurse) {
     $lock = Get-Content $lockFile.FullName -Raw | ConvertFrom-Json
     foreach ($target in $lock.dependencies.PSObject.Properties) { foreach ($dependency in $target.Value.PSObject.Properties) {
@@ -32,7 +37,9 @@ foreach ($lockFile in Get-ChildItem (Join-Path $repo 'src') -Filter 'packages.lo
 }
 foreach ($native in Get-ChildItem (Join-Path $publish 'native') -Filter '*.dll') { $packages.Add(@{ SPDXID=('SPDXRef-native-' + $native.BaseName); name=$native.Name; downloadLocation='NOASSERTION'; filesAnalyzed=$false; licenseConcluded='NOASSERTION'; checksums=@(@{ algorithm='SHA256'; checksumValue=(Get-FileHash $native.FullName -Algorithm SHA256).Hash.ToLowerInvariant() }) }) }
 $packages.Add(@{ SPDXID='SPDXRef-ffmpeg'; name='ffmpeg.exe'; downloadLocation='NOASSERTION'; filesAnalyzed=$false; licenseConcluded='NOASSERTION'; checksums=@(@{ algorithm='SHA256'; checksumValue=(Get-FileHash (Join-Path $publish 'tools/ffmpeg.exe') -Algorithm SHA256).Hash.ToLowerInvariant() }) })
-$inventory=@{ spdxVersion='SPDX-2.3'; dataLicense='CC0-1.0'; SPDXID='SPDXRef-DOCUMENT'; name=('BeastScreen-' + $Version); documentNamespace=('https://github.com/NoLifeeSSJ/BeastScreen/sbom/' + [Guid]::NewGuid()); creationInfo=@{ created=[DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ'); creators=@('Tool: BeastScreen-Package.ps1') }; packages=@($packages.ToArray()) }
+$relations=@(@{ spdxElementId='SPDXRef-DOCUMENT'; relationshipType='DESCRIBES'; relatedSpdxElement='SPDXRef-BeastScreen' })
+foreach($package in $packages){if($package.SPDXID -ne 'SPDXRef-BeastScreen'){$relations+=@{ spdxElementId='SPDXRef-BeastScreen'; relationshipType='DEPENDS_ON'; relatedSpdxElement=$package.SPDXID }}}
+$inventory=@{ spdxVersion='SPDX-2.3'; dataLicense='CC0-1.0'; SPDXID='SPDXRef-DOCUMENT'; name=('BeastScreen-' + $Version); documentNamespace=('https://github.com/NoLifeeSSJ/BeastScreen/sbom/' + [Guid]::NewGuid()); creationInfo=@{ created=[DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ'); creators=@('Tool: BeastScreen-Package.ps1') }; documentDescribes=@('SPDXRef-BeastScreen'); relationships=$relations; packages=@($packages.ToArray()) }
 $sbom=Join-Path $output 'BeastScreen-sbom.spdx.json'; [IO.File]::WriteAllText($sbom, ($inventory | ConvertTo-Json -Depth 12)); Copy-Item $sbom $publish
 if ($ForRelease) {
     $sources = Join-Path $artifacts 'audited-corresponding-source'

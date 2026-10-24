@@ -1,13 +1,13 @@
 # Compatibility evidence
 
-No Windows playback combination has yet been marked tested. Cross-compilation and unit tests do not establish codec support. The selected native build is pinned in `native-dependencies.json`; hardware, drivers and build options affect compatibility.
+The synthetic combination **Matroska + H.264 (8-bit, 640×360, 30 fps) + two AAC tracks** passes actual libmpv playback/seek/screenshot smoke on Windows Server 2025 x64 with WARP/software rendering and null audio ([CI evidence](https://github.com/NoLifeeSSJ/BeastScreen/actions/runs/40123368941)). This is not Windows 11, audible-output, high-resolution or hardware-decode qualification. SRT loading is tested; subtitle appearance still needs inspection. Cross-compilation and file extensions do not establish other codec support. The selected native build is pinned in `native-dependencies.json`; hardware, drivers and build options affect compatibility.
 
 | Category | Targets | Current evidence |
 | --- | --- | --- |
-| Containers | MP4, MKV, AVI, MOV, WebM, MPEG/MPG, TS/M2TS/MTS, WMV, FLV, OGV, VOB, 3GP | Expected from mpv/FFmpeg, untested with the selected Windows build |
-| Video | H.264, HEVC, AV1, VP8/9, MPEG-2, MPEG-4 Part 2, VC-1, MJPEG, ProRes | Expected where compiled in; sample matrix required |
-| Audio | MP3, AAC/M4A, FLAC, WAV, Vorbis, Opus, ALAC, WMA, AIFF, AC-3, E-AC-3, DTS | Expected where compiled in; not verified; passthrough requires suitable receiver/device |
-| Subtitles | SRT, ASS/SSA, WebVTT, embedded, PGS, VobSub | Expected from libass/FFmpeg; font availability and graphical formats require samples |
+| Containers | MP4, MKV, AVI, MOV, WebM, MPEG/MPG, TS/M2TS/MTS, WMV, FLV, OGV, VOB, 3GP | MKV combination above tested; other combinations expected and untested |
+| Video | H.264, HEVC, AV1, VP8/9, MPEG-2, MPEG-4 Part 2, VC-1, MJPEG, ProRes | H.264 combination above tested; other codecs expected where compiled in; matrix required |
+| Audio | MP3, AAC/M4A, FLAC, WAV, Vorbis, Opus, ALAC, WMA, AIFF, AC-3, E-AC-3, DTS | AAC with null output tested; other playback combinations untested. FFmpeg FLAC tags/frame helper tests pass. Passthrough needs compatible hardware |
+| Subtitles | SRT, ASS/SSA, WebVTT, embedded, PGS, VobSub | SRT track loading tested; visual text rendering and other formats unverified |
 | Streams | Direct HTTP(S), unencrypted HLS/DASH, radio, IPTV playlists, RTSP, RTMP, RTP, UDP, SRT | UI accepts selected protocols; controlled Windows/network tests outstanding |
 | Files | Unicode, spaces, UNC, mapped/removable drives, extensionless files, long paths | Parser/storage tests cover Unicode; filesystem/platform checks outstanding |
 | Picture | VFR, high bit depth, HDR, scaling, hardware decode | Hardware/build dependent; not qualified |

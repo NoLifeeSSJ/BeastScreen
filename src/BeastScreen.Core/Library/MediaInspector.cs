@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
 using BeastScreen.Core.Security;
@@ -11,13 +12,14 @@ public sealed record LocalMetadata(string Title = "", string Artist = "", string
 public sealed class MediaInspector(string ffmpegPath, string cacheDirectory) : IDisposable
 {
     private readonly SemaphoreSlim workers = new(2);
+    private readonly ConcurrentDictionary<Process, byte> active = new();
     public bool Available => File.Exists(ffmpegPath);
     public static string CacheKey(string path, long modified) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(path + "\n" + modified)));
     public string ThumbnailPath(string path, long modified) => Path.Combine(cacheDirectory, CacheKey(path, modified) + ".jpg");
     public async Task<LocalMetadata> ReadMetadataAsync(string source, CancellationToken cancellationToken)
     {
         if (!Available || SourcePolicy.IsNetwork(source)) return new();
-        var output = await RunAsync(["-nostdin", "-hide_banner", "-v", "error", "-max_alloc", "67108864", "-protocol_whitelist", "file", "-i", source, "-f", "ffmetadata", "pipe:1"], cancellationToken);
+        var output = await RunAsync(["-nostdin", "-hide_banner", "-v", "error", "-max_alloc", "67108864", "-protocol_whitelist", "file", "-i", source, "-f", "ffmetadata", "pipe:1"], cancellationToken).ConfigureAwait(false);
         var tags = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var line in output.Split('\n'))
         {
@@ -40,7 +42,7 @@ public sealed class MediaInspector(string ffmpegPath, string cacheDirectory) : I
         Directory.CreateDirectory(cacheDirectory); var partial = target + "." + Guid.NewGuid().ToString("N") + ".jpg";
         try
         {
-            await RunAsync(["-nostdin", "-hide_banner", "-v", "error", "-max_alloc", "67108864", "-protocol_whitelist", "file", "-i", source, "-map", "0:v:0", "-frames:v", "1", "-vf", "scale=320:-2", "-an", "-sn", "-y", partial], cancellationToken);
+            await RunAsync(["-nostdin", "-hide_banner", "-v", "error", "-max_alloc", "67108864", "-protocol_whitelist", "file", "-i", source, "-map", "0:v:0", "-frames:v", "1", "-vf", "scale=320:-2", "-an", "-sn", "-y", partial], cancellationToken).ConfigureAwait(false);
             if (!File.Exists(partial) || new FileInfo(partial).Length is <= 0 or > 5 * 1024 * 1024) return null;
             File.Move(partial, target, true); return target;
         }
@@ -48,30 +50,37 @@ public sealed class MediaInspector(string ffmpegPath, string cacheDirectory) : I
     }
     private async Task<string> RunAsync(string[] arguments, CancellationToken cancellationToken)
     {
-        await workers.WaitAsync(cancellationToken);
+        await workers.WaitAsync(cancellationToken).ConfigureAwait(false);
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken); timeout.CancelAfter(TimeSpan.FromSeconds(12));
         using var process = new Process { StartInfo = new ProcessStartInfo { FileName = ffmpegPath, UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true } };
         foreach (var argument in arguments) process.StartInfo.ArgumentList.Add(argument);
         try
         {
             process.Start();
+            active.TryAdd(process, 0); timeout.Token.ThrowIfCancellationRequested();
             var output = ReadBoundedAsync(process.StandardOutput, 1024 * 1024, timeout.Token); var error = ReadBoundedAsync(process.StandardError, 65536, timeout.Token);
             // Observe reader failures promptly instead of waiting for a full pipe and the timeout.
             var exit = process.WaitForExitAsync(timeout.Token);
             var all = Task.WhenAll(output, error, exit);
-            var failedReader = await Task.WhenAny(output, error, exit);
-            if (failedReader.IsFaulted) await failedReader;
-            await all;
+            var failedReader = await Task.WhenAny(output, error, exit).ConfigureAwait(false);
+            if (failedReader.IsFaulted) await failedReader.ConfigureAwait(false);
+            await all.ConfigureAwait(false);
             if (process.ExitCode != 0) throw new InvalidDataException("The media helper could not inspect this file. It may be corrupt, unsupported or have no image stream.");
-            return await output;
+            return await output.ConfigureAwait(false);
         }
-        finally { try { if (process.Id > 0 && !process.HasExited) process.Kill(entireProcessTree: true); } catch (InvalidOperationException) { } workers.Release(); }
+        finally { active.TryRemove(process, out _); try { if (process.Id > 0 && !process.HasExited) process.Kill(entireProcessTree: true); } catch (InvalidOperationException) { } workers.Release(); }
     }
     private static async Task<string> ReadBoundedAsync(StreamReader reader, int maximum, CancellationToken cancellationToken)
     {
         var builder = new StringBuilder(); var buffer = new char[4096]; int count;
-        while ((count = await reader.ReadAsync(buffer, cancellationToken)) > 0) { if (builder.Length + count > maximum) throw new InvalidDataException("Media helper output exceeded its safety limit."); builder.Append(buffer, 0, count); }
+        while ((count = await reader.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0) { if (builder.Length + count > maximum) throw new InvalidDataException("Media helper output exceeded its safety limit."); builder.Append(buffer, 0, count); }
         return builder.ToString();
     }
-    public void Dispose() => workers.Dispose();
+    public void CancelWork()
+    {
+        foreach (var process in active.Keys)
+            try { if (!process.HasExited) process.Kill(entireProcessTree: true); }
+            catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception) { }
+    }
+    public void Dispose() { CancelWork(); workers.Dispose(); }
 }

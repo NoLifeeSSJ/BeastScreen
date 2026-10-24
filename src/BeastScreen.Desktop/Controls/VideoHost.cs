@@ -11,6 +11,7 @@ public sealed class VideoHost : HwndHost
     public event Action<nint>? Ready;
     public event Action<Key>? NativeKey;
     public event Action? DoubleClicked;
+    public (int Width, int Height) ClientSize => child != 0 && GetClientRect(child, out var rect) ? (rect.Right - rect.Left, rect.Bottom - rect.Top) : (0, 0);
     protected override HandleRef BuildWindowCore(HandleRef hwndParent)
     {
         child = CreateWindowEx(0, "static", "BeastScreen video", 0x40000000 | 0x10000000 | 0x02000000 | 0x00000100, 0, 0, Math.Max(1, (int)ActualWidth), Math.Max(1, (int)ActualHeight), hwndParent.Handle, 0, 0, 0);
@@ -28,4 +29,6 @@ public sealed class VideoHost : HwndHost
     [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)] private static extern nint CreateWindowEx(int exStyle, string className, string windowName, int style, int x, int y, int width, int height, nint parent, nint menu, nint instance, nint param);
     [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool DestroyWindow(nint hwnd);
     [DllImport("user32.dll")] private static extern nint SetFocus(nint hwnd);
+    [StructLayout(LayoutKind.Sequential)] private struct NativeRect { public int Left, Top, Right, Bottom; }
+    [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool GetClientRect(nint hwnd, out NativeRect rect);
 }

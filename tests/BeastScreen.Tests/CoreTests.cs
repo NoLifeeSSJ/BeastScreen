@@ -141,6 +141,8 @@ public sealed class SecurityAndSettingsTests
     {
         var value = Redaction.Clean("Failed https://user:password@example.com/private/media?token=secret&key=abc"); Assert.DoesNotContain("password", value); Assert.DoesNotContain("secret", value); Assert.DoesNotContain("private", value); Assert.Contains("example.com", value);
     }
+    [Theory] [InlineData("srt://example.com/live?passphrase=secret")] [InlineData("Authorization: Bearer secret")] [InlineData("Cookie: session=secret")]
+    public void StreamingCredentialsAndAuthenticationHeadersAreRedacted(string value) => Assert.DoesNotContain("secret", Redaction.Clean(value));
     [Fact] public void SettingsRoundTripAndInvalidJsonIsPreserved()
     {
         using var temp = new TemporaryDirectory(); var file = temp.File("settings.json"); var settings = new AppSettings { ScreenshotFolder = temp.Path, Volume = 42, SeekSeconds = 25 }; settings.Save(file); Assert.Equal(42, AppSettings.Load(file).Volume);
