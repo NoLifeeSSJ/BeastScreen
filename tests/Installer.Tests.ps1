@@ -38,6 +38,11 @@ try {
     $state.previous='versions/v0.0.1'; Write-InstallState $root $state; Assert-True (Test-Path (Join-Path $root '.beastscreen-install.json.backup')) 'Atomic state replacement did not keep a backup.'
     $version=Join-Path $root 'versions/v0.1.0'; New-Item -ItemType Directory $version -Force | Out-Null; [IO.File]::WriteAllText((Join-Path $version 'BeastScreen.exe'),'owned'); [IO.File]::WriteAllText((Join-Path $version 'personal-media.txt'),'not owned')
     Remove-OwnedVersion $root $state.versions[0]; Assert-True (-not (Test-Path (Join-Path $version 'BeastScreen.exe'))) 'Owned application file was not removed.'; Assert-True (Test-Path (Join-Path $version 'personal-media.txt')) 'Uninstall deleted an unowned file.'
+    [IO.File]::WriteAllText((Join-Path $version 'BeastScreen.exe'),'partial'); Write-InstallJournal $root $state.versions[0]; Restore-PendingOperation $root $null
+    Assert-True (-not (Test-Path (Join-Path $version 'BeastScreen.exe'))) 'Interrupted-install recovery left a partial owned file.'
+    Assert-True (Test-Path (Join-Path $version 'personal-media.txt')) 'Interrupted-install recovery removed an unowned file.'
+    [IO.File]::WriteAllText((Join-Path $version 'BeastScreen.exe'),'active'); Write-InstallJournal $root $state.versions[0]; Restore-PendingOperation $root $state
+    Assert-True (Test-Path (Join-Path $version 'BeastScreen.exe')) 'Recovery deleted a version whose activation was already committed.'
     $state.versions[0].directory='../repo'; Write-InstallState $root $state; Assert-Throws { Read-InstallState $root } 'Escaping installed-version state was accepted.'
     Write-Output ('Passed ' + $script:Passed + ' installer helper assertions. These do not substitute for the Windows lifecycle test.')
 } finally { Remove-Item -LiteralPath $temp -Recurse -Force }

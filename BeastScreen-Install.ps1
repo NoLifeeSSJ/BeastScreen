@@ -182,6 +182,22 @@ function Remove-OwnedVersion([string]$Root, $Entry) {
         if (@(Get-ChildItem -LiteralPath $directory -Force).Count -eq 0) { [IO.Directory]::Delete($directory) }
     }
 }
+function Write-InstallJournal([string]$Root, $Entry) {
+    $file=Join-Path $Root '.beastscreen-pending.json'
+    $temp=$file + '.' + [Guid]::NewGuid().ToString('N') + '.tmp'
+    try { [IO.File]::WriteAllText($temp, (@{ product=$script:Product; installerSchema=1; entry=$Entry } | ConvertTo-Json -Depth 10), (New-Object Text.UTF8Encoding($false))); [IO.File]::Move($temp,$file) }
+    finally { if(Test-Path -LiteralPath $temp){Remove-Item -LiteralPath $temp -Force} }
+}
+function Restore-PendingOperation([string]$Root, $State) {
+    $file=Join-Path $Root '.beastscreen-pending.json'
+    if(-not (Test-Path -LiteralPath $file -PathType Leaf)){return}
+    $journal=Get-Content -LiteralPath $file -Raw | ConvertFrom-Json
+    if($journal.product -ne $script:Product -or $journal.installerSchema -ne 1 -or $journal.entry.directory -notmatch '^versions[\\/]v[0-9A-Za-z.-]+$'){throw 'Invalid interrupted-install journal; refusing cleanup.'}
+    if($null -eq $State -or $State.current -ne $journal.entry.directory){Remove-OwnedVersion $Root $journal.entry}
+    Remove-Item -LiteralPath $file -Force
+    $versions=Join-Path $Root 'versions'
+    if((Test-Path -LiteralPath $versions) -and @(Get-ChildItem -LiteralPath $versions -Force).Count -eq 0){[IO.Directory]::Delete($versions)}
+}
 function Invoke-BeastScreenInstaller {
     if ([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT) { throw 'BeastScreen requires native Windows 11 x64.' }
     $architecture = $env:PROCESSOR_ARCHITEW6432; if ([string]::IsNullOrEmpty($architecture)) { $architecture = $env:PROCESSOR_ARCHITECTURE }
@@ -194,6 +210,7 @@ function Invoke-BeastScreenInstaller {
         try { $lock = [IO.File]::Open((Join-Path $parent ('.beastscreen-' + $id + '.lock')), [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None) }
         catch { throw 'Another operation is using this installation, or this location is not writable. Choose a writable custom directory or elevate only this maintenance operation if needed.' }
         $state = Read-InstallState $root
+        Restore-PendingOperation $root $state
         if ($null -eq $state -and (Test-Path -LiteralPath $root) -and @(Get-ChildItem -LiteralPath $root -Force).Count -gt 0) { throw 'Refusing to claim a nonempty directory without a BeastScreen ownership record.' }
         if ($Action -eq 'Launch') { if ($null -eq $state) { throw 'BeastScreen is not installed here.' }; Start-Process -FilePath (Join-Path (Join-Path $root $state.current) 'BeastScreen.exe'); return }
         if ($Action -eq 'Uninstall') {
@@ -234,14 +251,16 @@ function Invoke-BeastScreenInstaller {
         [IO.Directory]::CreateDirectory((Join-Path $root 'versions')) | Out-Null
         $relative = 'versions\' + $release.tag_name + '-' + [Guid]::NewGuid().ToString('N')
         $candidate = Join-Path $root $relative
+        $entry = [pscustomobject]@{ directory=$relative; version=$release.tag_name; files=@($files) }
+        Write-InstallJournal $root $entry
         # Copy to the destination volume before startup checks; staging can be on another drive.
         Copy-Item -LiteralPath $unpacked -Destination $candidate -Recurse
-        $entry = [pscustomobject]@{ directory=$relative; version=$release.tag_name; files=@($files) }
         try { Invoke-StartupCheck (Join-Path $candidate 'BeastScreen.exe'); Stop-OwnedPlayer $root; Invoke-StartupCheck (Join-Path $candidate 'BeastScreen.exe') '--check-data' }
         catch { Remove-OwnedVersion $root $entry; throw }
         if ($null -eq $state) { $state = [pscustomobject]@{ product=$script:Product; installerSchema=1; current=''; previous=''; desktop=$false; associations=$false; versions=@() } }
         $state.previous = $state.current; $state.current = $relative; $state.desktop = $state.desktop -or $DesktopShortcut.IsPresent; $state.associations = $state.associations -or $RegisterFileAssociations.IsPresent; $state.versions = @($state.versions) + @($entry)
         Write-InstallState $root $state
+        Remove-Item -LiteralPath (Join-Path $root '.beastscreen-pending.json') -Force
         $maintenance = Join-Path $root 'BeastScreen-Install.ps1'
         if ((Get-NormalizedPath $script:InstallerSourcePath) -ne (Get-NormalizedPath $maintenance)) { Copy-Item -LiteralPath $script:InstallerSourcePath -Destination $maintenance -Force }
         Set-Registrations $root $state $state.desktop $state.associations

@@ -41,14 +41,14 @@ public sealed class DatabaseTests : IDisposable
     [Fact] public void NewerSchemaIsRejectedWithoutChangingDatabase()
     {
         var db = Create(); db.Upsert("a", "A", "Video");
-        using (var c = new SqliteConnection("Data Source=" + temp.File("library.sqlite"))) { c.Open(); using var cmd = c.CreateCommand(); cmd.CommandText = "PRAGMA user_version=99"; cmd.ExecuteNonQuery(); }
+        using (var c = new SqliteConnection("Data Source=" + temp.File("library.sqlite") + ";Pooling=False")) { c.Open(); using var cmd = c.CreateCommand(); cmd.CommandText = "PRAGMA user_version=99"; cmd.ExecuteNonQuery(); }
         Assert.Throws<InvalidOperationException>(() => Create());
-        using var check = new SqliteConnection("Data Source=" + temp.File("library.sqlite")); check.Open(); using var version = check.CreateCommand(); version.CommandText = "PRAGMA user_version"; Assert.Equal(99L, version.ExecuteScalar());
+        using var check = new SqliteConnection("Data Source=" + temp.File("library.sqlite") + ";Pooling=False"); check.Open(); using var version = check.CreateCommand(); version.CommandText = "PRAGMA user_version"; Assert.Equal(99L, version.ExecuteScalar());
     }
     [Fact] public void IncompatibleRestoreKeepsCurrentLibrary()
     {
         var db = Create(); db.Upsert("a", "Keep me", "Video"); var other = temp.File("bad.sqlite");
-        using (var c = new SqliteConnection("Data Source=" + other)) { c.Open(); using var cmd = c.CreateCommand(); cmd.CommandText = "PRAGMA user_version=500; CREATE TABLE junk(id INTEGER);"; cmd.ExecuteNonQuery(); }
+        using (var c = new SqliteConnection("Data Source=" + other + ";Pooling=False")) { c.Open(); using var cmd = c.CreateCommand(); cmd.CommandText = "PRAGMA user_version=500; CREATE TABLE junk(id INTEGER);"; cmd.ExecuteNonQuery(); }
         Assert.Throws<InvalidDataException>(() => db.Restore(other)); Assert.Equal("Keep me", Assert.Single(db.Query(new())).Title);
     }
     [Fact] public void RelocateUsesFolderBoundaryAndUpdatesDependentRecords()
@@ -60,7 +60,7 @@ public sealed class DatabaseTests : IDisposable
     [Fact] public void TenThousandRecordsUseBoundedPages()
     {
         var db = Create();
-        using (var c = new SqliteConnection("Data Source=" + temp.File("library.sqlite")))
+        using (var c = new SqliteConnection("Data Source=" + temp.File("library.sqlite") + ";Pooling=False"))
         {
             c.Open(); using var tx = c.BeginTransaction();
             using var cmd = c.CreateCommand(); cmd.Transaction = tx; cmd.CommandText = "INSERT INTO media(path,title,kind,added) VALUES($p,$t,'Video',0)"; cmd.Parameters.Add("$p", SqliteType.Text); cmd.Parameters.Add("$t", SqliteType.Text);
