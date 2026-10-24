@@ -3,10 +3,15 @@
   "windows11PlaybackAccepted": false,
   "cleanMachineInstallerAccepted": false,
   "testAccess": {
-    "windows11": "unavailable; confirmed by user on 2026-10-24",
+    "windows11": "User now reports BeastScreen working on Windows 11; build/hardware and clean-machine details were not supplied.",
     "windowsServerAutomation": "available through GitHub Actions"
   },
   "evidence": [
+    {
+      "kind": "user-reported-windows11-playback",
+      "result": "User reports: it works on win11 now",
+      "limits": "User confirmation of basic operation; source version, device coverage and clean-machine installer checks were not supplied."
+    },
     {
       "kind": "expanded-windows-server-playback",
       "sourceCommit": "49e92ec08218dae510c78a73e5d0dde327ba9a75",

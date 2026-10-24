@@ -2,7 +2,7 @@
 
 Statuses describe evidence, not just source-code presence.
 
-Windows 11 test access is currently unavailable (confirmed by the user, 2026-10-24). Continue implementation and Windows Server automation independently; leave Windows 11, physical-device and clean-machine acceptance unapproved until that access exists. Do not weaken or replace those release gates.
+The user now reports BeastScreen working on Windows 11. Record this as basic-operation confirmation; detailed device/input/installer checks remain unrecorded. Continue independent implementation and Windows Server automation without treating the report as a complete acceptance matrix.
 
 1. **Repository and playback prototype — automated Windows Server playback passes; Windows 11 acceptance pending.** WPF HWND host, libmpv lifecycle/events, D3D11/WARP configuration, rendering ADR and smoke runner work in CI with a real synthetic H.264/AAC fixture. The required Vulkan loader builds successfully. Physical audio, input focus, subtitle appearance and GPU/software fallback must be observed on Windows 11 before this milestone is fully accepted.
 2. **Playback controls — implemented, Windows acceptance pending.** Open/seek/queue/tracks/speed/chapters/loop/subtitle/picture/audio/diagnostics are wired. No placeholder buttons are presented as a delivered feature. Audio device selection currently uses an engine device list plus its exact name rather than a friendly device picker.

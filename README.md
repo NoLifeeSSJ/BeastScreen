@@ -2,7 +2,7 @@
 
 A native C# / .NET 10 WPF media player for Windows 11 x64, using libmpv for decoding and rendering, SQLite for the local library, and JSON preferences. GPL-3.0-or-later.
 
-**Development preview: not yet a qualified release.** [Windows Server CI passes](https://github.com/NoLifeeSSJ/BeastScreen/actions/runs/40128220184), including 50 core and 15 native/integration cases, actual-player stream recovery/radio/HLS/DASH checks, representative codec decoding, both installer PowerShell versions, self-contained packaging and a controlled maintenance lifecycle. Windows 11 test access is unavailable. Its interactive/clean-machine acceptance, hardware decoding and the native redistribution audit remain release gates. See [test evidence](docs/testing.md) and [milestones](docs/roadmap.md). There is currently no published installer package.
+**Development preview: not yet a qualified release.** [Windows Server CI passes](https://github.com/NoLifeeSSJ/BeastScreen/actions/runs/40128220184), including 50 core and 15 native/integration cases, actual-player stream recovery/radio/HLS/DASH checks, representative codec decoding, both installer PowerShell versions, self-contained packaging and a controlled maintenance lifecycle. The user reports basic operation on Windows 11. Detailed interactive/clean-machine acceptance, hardware decoding and the native redistribution audit remain release gates. See [test evidence](docs/testing.md) and [milestones](docs/roadmap.md). There is currently no published installer package.
 
 ## Build on Windows
 

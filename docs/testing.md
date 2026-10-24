@@ -46,7 +46,7 @@ The Windows app supports `--smoke-test <fixture.mkv> --result <result.json>` and
 
 ## Required interactive Windows 11 checks — not run
 
-Windows 11 access is unavailable, as confirmed by the user on 2026-10-24. This does not block controlled Windows Server tests or justify qualifying Windows 11 without testing it.
+The user now reports BeastScreen working on Windows 11. This confirms basic operation, but the source version, machine details and the individual checks below have not been supplied; their detailed outcomes remain unverified.
 
 - Video visible inside the native surface; physical audio; rendered subtitle appearance; selected audio/video tracks; chapter/edition selection; seek/pause/duration and frame stepping.
 - Hardware decode on supported H.264/HEVC/AV1, forced software decode and fallback; dropped frames, HDR-to-SDR and supported HDR output; audio-device changes and multichannel/passthrough with appropriate hardware.
