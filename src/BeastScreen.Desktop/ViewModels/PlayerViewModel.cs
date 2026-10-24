@@ -170,7 +170,8 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
     private void SaveProgress(bool completed = false)
     {
         if (source is null || HasPrivateUrl(source)) return;
-        Guard(() => Database.SaveProgress(source, completed ? 0 : position, duration));
+        var unseekable = LastSnapshot is { Seekable: false, State: PlaybackState.Playing or PlaybackState.Paused };
+        Guard(() => Database.SaveProgress(source, completed || unseekable ? 0 : position, unseekable ? 0 : duration));
     }
     private static bool HasPrivateUrl(string value) => SourcePolicy.IsNetwork(value) && Uri.TryCreate(value, UriKind.Absolute, out var url) && (url.UserInfo.Length > 0 || url.Query.Length > 0);
     private async Task ReconnectAsync()
@@ -217,7 +218,13 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
     [RelayCommand] private void PlayQueued() { var value = queue.Select(SelectedQueueIndex); if (value is not null) PlaySource(value); }
     [RelayCommand] private void MoveQueue(string? direction) { var from = SelectedQueueIndex; var to = from + (direction == "up" ? -1 : 1); queue.Move(from, to); RefreshQueue(); SelectedQueueIndex = Math.Clamp(to, -1, Queue.Count - 1); }
     [RelayCommand] private void Favourite() { if (SelectedMedia is not null) { Database.ToggleFavourite(SelectedMedia.Path); RefreshLibrary(); } }
-    [RelayCommand] private void Bookmark() { if (source is not null) { Database.AddBookmark(source, position, FormatTime(position)); RefreshBookmarks(); Status = "Bookmark saved."; } }
+    [RelayCommand] private void Bookmark()
+    {
+        if (source is null) return;
+        if (HasPrivateUrl(source)) { Error = "Stream URLs containing user information or query parameters are kept in memory only and cannot be saved as bookmarks."; return; }
+        if (LastSnapshot?.Seekable != true) { Error = "Bookmarks require a seekable media source."; return; }
+        Database.AddBookmark(source, position, FormatTime(position)); RefreshBookmarks(); Status = "Bookmark saved.";
+    }
     [RelayCommand] private void GoBookmark() { if (SelectedBookmark is not null) Command("seek", Number(SelectedBookmark.Position), "absolute+exact"); }
     [RelayCommand] private void SaveQueue() { if (Queue.Count == 0) return; if (Queue.Any(HasPrivateUrl)) { Error = "URLs containing user information or query parameters are kept in memory only. Remove private URLs before saving a library playlist. Explicit file export writes the URLs you select."; return; } Database.SavePlaylist("Playlist " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), Queue.ToArray()); RefreshPlaylists(); Status = "Playlist saved in your library."; }
     [RelayCommand] private void LoadSavedPlaylist() { var item = Database.Playlists().FirstOrDefault(p => $"{p.Id} · {p.Name}" == SelectedSavedPlaylist); if (item.Id > 0) OpenSources(Database.LoadPlaylist(item.Id)); }

@@ -30,6 +30,11 @@ public partial class MainWindow
             model.Engine.Command("seek", "3", "absolute+exact");
             await WaitFor(() => model.LastSnapshot?.Position >= 2.9, TimeSpan.FromSeconds(5)); checks["httpSeeking"] = true;
 
+            await PlayAsync("recover?session=fixture");
+            var privateUrl = new Uri(server, "recover?session=fixture").AbsoluteUri;
+            model.BookmarkCommand.Execute(null);
+            checks["privateStreamUrlNotPersisted"] = model.Database.Bookmarks(privateUrl).Count == 0 && !model.Database.Query(new(Limit: 500)).Any(item => item.Path == privateUrl);
+
             model.OpenSources([new Uri(server, "exhaust").AbsoluteUri]);
             await WaitFor(() => model.Status.StartsWith("Stream reconnection stopped", StringComparison.Ordinal), TimeSpan.FromSeconds(25));
             checks["retryBudgetExhausted"] = true;
@@ -43,17 +48,21 @@ public partial class MainWindow
             await PlayAsync("radio");
             await WaitFor(() => model.LastSnapshot is { Live: true, Seekable: false } && !model.Seekable, TimeSpan.FromSeconds(10));
             checks["liveControls"] = model.TimeLabel.EndsWith("LIVE", StringComparison.Ordinal);
+            var radio = new Uri(server, "radio").AbsoluteUri;
+            model.BookmarkCommand.Execute(null); checks["liveBookmarkUnavailable"] = model.Database.Bookmarks(radio).Count == 0;
             await PlayAsync("hls/index.m3u8"); checks["unencryptedHls"] = model.LastSnapshot?.Duration > 7;
+            checks["liveResumeNotSaved"] = model.Database.Progress(radio) == (0d, 0d);
             await PlayAsync("dash/index.mpd"); checks["unencryptedDash"] = model.LastSnapshot?.Duration > 7;
 
             checks["all"] = checks.Values.All(x => x);
             File.WriteAllText(output, JsonSerializer.Serialize(new { checks, limitations = "Controlled loopback HTTP fixtures on Windows Server. No Internet-service, TLS-authentication, RTSP, hardware-output or Windows 11 qualification." }, new JsonSerializerOptions { WriteIndented = true }));
-            Close(); Application.Current.Shutdown(checks["all"] ? 0 : 1);
+            Application.Current.Shutdown(checks["all"] ? 0 : 1);
         }
         catch (Exception ex)
         {
-            File.WriteAllText(output, JsonSerializer.Serialize(new { checks, status = model.Status, snapshot = model.LastSnapshot, error = Redaction.Clean(ex.ToString()) }, new JsonSerializerOptions { WriteIndented = true }));
-            Close(); Application.Current.Shutdown(1);
+            checks["all"] = false;
+            File.WriteAllText(output, JsonSerializer.Serialize(new { checks, status = model.Status, snapshot = model.LastSnapshot, sourceBytes = model.Engine.Get("file-size"), error = Redaction.Clean(ex.ToString()) }, new JsonSerializerOptions { WriteIndented = true }));
+            Application.Current.Shutdown(1);
         }
     }
 }

@@ -196,9 +196,9 @@ public partial class MainWindow : Window
             var screenshot = Path.Combine(Path.GetDirectoryName(output)!, "smoke-frame.png"); model.Engine.Command("screenshot-to-file", screenshot, "subtitles"); await WaitFor(() => File.Exists(screenshot) && new FileInfo(screenshot).Length > 100, TimeSpan.FromSeconds(5)); checks["renderedScreenshot"] = true;
             checks["all"] = checks.Values.All(x => x);
             File.WriteAllText(output, JsonSerializer.Serialize(new { checks, diagnostics = model.Diagnostics, limitations = "Automated screenshot and decode checks do not prove physical speaker output, subtitle appearance, HDR, keyboard focus, or hardware decoding. These need an interactive Windows test." }, new JsonSerializerOptions { WriteIndented = true }));
-            Close(); Application.Current.Shutdown(checks["all"] ? 0 : 1);
+            Application.Current.Shutdown(checks["all"] ? 0 : 1);
         }
-        catch (Exception ex) { File.WriteAllText(output, JsonSerializer.Serialize(new { checks, error = Redaction.Clean(ex.ToString()) })); Close(); Application.Current.Shutdown(1); }
+        catch (Exception ex) { checks["all"] = false; File.WriteAllText(output, JsonSerializer.Serialize(new { checks, error = Redaction.Clean(ex.ToString()) })); Application.Current.Shutdown(1); }
     }
     private async Task WaitFor(Func<bool> condition, TimeSpan timeout)
     {

@@ -13,6 +13,7 @@ public sealed class NativePlaybackTests
     private static string Repository => Path.GetFullPath("../../../../../", AppContext.BaseDirectory);
     private static string Fixtures => Path.Combine(Repository, "artifacts", "fixtures", "extended");
     private static Dictionary<string, string> Options => new() { ["vo"] = "null", ["ao"] = "null", ["hwdec"] = "no", ["gpu-api"] = "auto" };
+    private static string PlayerExecutable => Path.Combine(Repository, "src", "BeastScreen.Desktop", "bin", "Release", "net10.0-windows10.0.22000.0", "win-x64", "BeastScreen.exe");
 
     [Theory]
     [InlineData("h264.mp4")]
@@ -69,12 +70,12 @@ public sealed class NativePlaybackTests
         server.FailNext("/recover", 1); server.FailNext("/exhaust", 100); server.FailNext("/cancel", 100);
         var reportPath = Path.Combine(Repository, "artifacts", "test-results", "network-playback.json"); Directory.CreateDirectory(Path.GetDirectoryName(reportPath)!);
         if (File.Exists(reportPath)) File.Delete(reportPath);
-        var executable = Path.Combine(Repository, "src", "BeastScreen.Desktop", "bin", "Release", "net10.0-windows10.0.22000.0", "win-x64", "BeastScreen.exe");
-        using var player = new Process { StartInfo = new() { FileName = executable, UseShellExecute = false } };
+        using var player = new Process { StartInfo = new() { FileName = PlayerExecutable, UseShellExecute = false } };
         foreach (var argument in new[] { "--network-smoke-test", server.Address.AbsoluteUri, "--result", reportPath }) player.StartInfo.ArgumentList.Add(argument);
+        var started = false;
         try
         {
-            player.Start(); using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(90)); await player.WaitForExitAsync(timeout.Token);
+            player.Start(); started = true; using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(90)); await player.WaitForExitAsync(timeout.Token);
             Assert.True(File.Exists(reportPath), "The actual player did not write a network test report.");
             using var result = JsonDocument.Parse(await File.ReadAllTextAsync(reportPath));
             Assert.True(player.ExitCode == 0, result.RootElement.ToString());
@@ -84,7 +85,24 @@ public sealed class NativePlaybackTests
             Assert.Equal(1, server.RequestCount("/cancel"));
             Assert.True(server.RequestCount("/hls/index.m3u8") > 0); Assert.True(server.RequestCount("/dash/index.mpd") > 0); Assert.True(server.RequestCount("/radio") > 0);
         }
-        finally { if (player.Id > 0 && !player.HasExited) player.Kill(entireProcessTree: true); }
+        finally { if (started && !player.HasExited) player.Kill(entireProcessTree: true); }
+    }
+
+    [Fact] public async Task FailedPlayerSmokeWritesFailureAndExitsNonzero()
+    {
+        RequireWindows();
+        var report = Path.Combine(Repository, "artifacts", "test-results", "expected-smoke-failure.json"); Directory.CreateDirectory(Path.GetDirectoryName(report)!);
+        if (File.Exists(report)) File.Delete(report);
+        using var player = new Process { StartInfo = new() { FileName = PlayerExecutable, UseShellExecute = false } };
+        foreach (var arg in new[] { "--smoke-test", Path.Combine(Fixtures, Guid.NewGuid().ToString("N") + ".mkv"), "--result", report }) player.StartInfo.ArgumentList.Add(arg);
+        var started = false;
+        try
+        {
+            player.Start(); started = true; using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20)); await player.WaitForExitAsync(timeout.Token);
+            Assert.Equal(1, player.ExitCode);
+            using var result = JsonDocument.Parse(await File.ReadAllTextAsync(report)); Assert.False(result.RootElement.GetProperty("checks").GetProperty("all").GetBoolean());
+        }
+        finally { if (started && !player.HasExited) player.Kill(entireProcessTree: true); }
     }
 
     private static void RequireWindows() => Assert.True(OperatingSystem.IsWindows(), "This suite must execute on Windows with the pinned native DLLs and generated fixtures. Linux only cross-builds it; no tests are silently skipped.");

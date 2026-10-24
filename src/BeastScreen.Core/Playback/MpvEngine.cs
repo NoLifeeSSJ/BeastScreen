@@ -135,7 +135,8 @@ public sealed class MpvEngine : IPlaybackEngine
         var duration = Number("duration");
         var seekable = Get("seekable") == "yes";
         var diagnostics = $"{Get("video-codec")} · {Get("width")}×{Get("height")} · {Get("estimated-vf-fps")} fps · decoder {Get("hwdec-current")} · audio {Get("audio-codec")} {Get("audio-params/channel-count")} ch · dropped {Get("frame-drop-count")}";
-        Changed?.Invoke(new(state, Number("time-pos"), duration, seekable, networkSource && duration <= 0 && !seekable, Number("volume"), Get("mute") == "yes", Get("media-title"), diagnostics));
+        var live = PlaybackTiming.IsLiveLikeNetworkStream(networkSource, seekable, Number("file-size"), state);
+        Changed?.Invoke(new(state, Number("time-pos"), duration, seekable, live, Number("volume"), Get("mute") == "yes", Get("media-title"), diagnostics));
     }
 
     private void PublishTracks()

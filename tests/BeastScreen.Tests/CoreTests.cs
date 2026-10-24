@@ -112,6 +112,16 @@ public sealed class PlaylistTests : IDisposable
 
 public sealed class QueueTests
 {
+    [Theory]
+    [InlineData(true, false, -1, BeastScreen.Core.Playback.PlaybackState.Playing, true)]
+    [InlineData(true, false, 0, BeastScreen.Core.Playback.PlaybackState.Paused, true)]
+    [InlineData(true, false, -1, BeastScreen.Core.Playback.PlaybackState.Idle, false)]
+    [InlineData(true, false, -1, BeastScreen.Core.Playback.PlaybackState.Error, false)]
+    [InlineData(true, false, 1024, BeastScreen.Core.Playback.PlaybackState.Playing, false)]
+    [InlineData(true, true, -1, BeastScreen.Core.Playback.PlaybackState.Playing, false)]
+    [InlineData(false, false, -1, BeastScreen.Core.Playback.PlaybackState.Playing, false)]
+    public void UnknownLengthRadioUsesLiveControlsOnlyWhileActive(bool network, bool seekable, double bytes, BeastScreen.Core.Playback.PlaybackState state, bool expected) =>
+        Assert.Equal(expected, BeastScreen.Core.Playback.PlaybackTiming.IsLiveLikeNetworkStream(network, seekable, bytes, state));
     [Fact] public void NetworkReconnectsHaveAFiniteExponentialBudget()
     {
         var budget = new BeastScreen.Core.Playback.ReconnectBudget(); Assert.Equal(TimeSpan.FromSeconds(1), budget.TakeDelay()); Assert.Equal(TimeSpan.FromSeconds(2), budget.TakeDelay()); Assert.Equal(TimeSpan.FromSeconds(4), budget.TakeDelay()); Assert.Null(budget.TakeDelay()); budget.Reset(); Assert.Equal(TimeSpan.FromSeconds(1), budget.TakeDelay());
