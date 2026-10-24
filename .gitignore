@@ -1,0 +1,16 @@
+**/bin/
+**/obj/
+.vs/
+.idea/
+artifacts/
+.native/
+TestResults/
+*.user
+*.db*
+*.log
+*.mp4
+*.mkv
+*.wav
+*.7z
+*.zip
+!tests/fixtures/*.m3u

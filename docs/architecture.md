@@ -1,0 +1,23 @@
+# Architecture and decision record
+
+## ADR 001: native HWND rendering, separate WPF chrome
+
+The desktop targets `net10.0-windows10.0.22000.0` and self-contained `win-x64`, using .NET runtime 10.0.13 and SDK 10.0.402. The product qualification target is Windows 11 24H2 and later supported x64 releases (build 26100+), not every OS that can load the binary. Microsoft currently lists .NET 10 on Windows 11 26H1, 25H2, 24H2 and selected Enterprise/IoT editions; Windows 10 editions in Microsoft's runtime table are **not** BeastScreen qualifications. [Official runtime OS table](https://github.com/dotnet/core/blob/main/release-notes/10.0/supported-os.md), inspected 2026-10-24. Native build qualification remains pending.
+
+`IPlaybackEngine` isolates playback from library/UI logic. `MpvEngine` uses UTF-8 structured `mpv_command` arguments, string properties, a bounded-wait event thread, and explicit native allocation ownership. The event thread publishes immutable snapshots; the view model dispatches them to WPF. Stop/wake/join precedes `mpv_terminate_destroy`; callbacks never synchronously wait on the UI thread.
+
+`VideoHost : HwndHost` owns a native child HWND. libmpv receives its `wid` before initialization and renders through `gpu-next` with D3D11 and automatic safe hardware decoding. WPF navigation, controls, library and queue occupy sibling grid cells. **Ordinary WPF overlays cannot cover this surface**: the design deliberately avoids overlay controls. Fullscreen keeps the control strip outside the video surface; modal prompts are owned top-level windows. Native keyboard messages are routed to the same shortcut handler. Mouse double-click and resize require the interactive focus/DPI/monitor checks recorded in testing.md; no visual layering claim has yet been verified on Windows.
+
+This is simpler than sharing OpenGL/D3D textures with WPF. The tradeoff is that a future translucent on-video control layer needs a separately tested composition/render-API approach. A second playback backend is not introduced for untested disc-menu promises.
+
+## Storage and library
+
+The schema version lives in SQLite `PRAGMA user_version`. Migration executes in a transaction; a nonempty prior database is copied with SQLite's online backup API first. A newer database is rejected without modification. Restore checks SQLite integrity and schema before making a pre-restore backup. Installer rollback invokes the old application's read-only `--check-data` compatibility check before activation. Application versions and user data have independent lifetimes.
+
+The library only traverses user-selected roots, skips directory reparse points, preserves records for missing media and never modifies originals. Queries are parameterized, whitelist sort clauses and return at most 500 records; UI pages contain 200. The view uses recycling virtualization for lists and bounded pages for grids. Folder events debounce into incremental upserts. Metadata fields exist, but scanning currently derives names and media kind from filenames/extensions; this is indexing, not codec detection. Extensionless files can be opened directly. Automatic probing/artwork needs a separately bounded helper service.
+
+## Security boundaries
+
+Native libraries load only from the application `native` directory with DLL-directory/System32 search flags. libmpv's user config, script autoload, OSC, ytdl and default input bindings are disabled. Structured commands do not pass through a shell. Direct URL protocols are allowlisted; mpv pseudo-protocols such as `edl://`/`lavfi://` are rejected. Playlist size, count and nesting are bounded. Remote media can still refer to resources through the engine (for example HLS segments); playback is not an OS sandbox. URL diagnostics redact credentials, paths and query strings. Do not put sensitive URLs in exported playlists; optional credential storage is not implemented.
+
+The installer verifies packages before extraction, confines ZIP paths, rejects symlinks/duplicates and bounds expansion. It uses an exclusive installation lock, checks candidates before activation, records owned files, preserves previous versions and removes only recorded files. It does not change execution policy, overwrite default-app choices, or delete the source checkout. Native source/license completeness and Windows lifecycle tests gate release publication.

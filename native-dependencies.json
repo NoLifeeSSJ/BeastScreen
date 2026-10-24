@@ -1,0 +1,33 @@
+{
+  "reviewedAt": "2026-10-24",
+  "architecture": "win-x64",
+  "mpv": {
+    "version": "20261021-git-e471496c56",
+    "sourceRevision": "e471496c56",
+    "url": "https://github.com/shinchiro/mpv-winbuild-cmake/releases/download/20261021/mpv-dev-x86_64-20261021-git-e471496c56.7z",
+    "sha256": "efc719eff3dc5954b4a5efc800632808bcec01cc9034940dd14e5eb7fe9ea633",
+    "dllSha256": "04e4d27dc385dc18ddd93fbe69c75e635b864f3c6ec53a9122df54c2f7842f4a",
+    "provenance": "https://github.com/shinchiro/mpv-winbuild-cmake/actions/runs/39518569492",
+    "redistributionAudit": "pending exact transitive source and licensing inventory"
+  },
+  "ffmpeg": {
+    "version": "git-9a861e968-20261021",
+    "url": "https://github.com/shinchiro/mpv-winbuild-cmake/releases/download/20261021/ffmpeg-x86_64-git-9a861e968.7z",
+    "sha256": "fc9c135b799b410ffc78517f428904c299bc64cd8144f21f63f84fcd8c35ea19",
+    "redistributionAudit": "pending exact transitive source and licensing inventory"
+  },
+  "vulkanLoader": {
+    "version": "1.4.366",
+    "revision": "3187e1e4d463ddf7f60f0bbaf26c7d7b7e40ca34",
+    "url": "https://github.com/KhronosGroup/Vulkan-Loader/archive/3187e1e4d463ddf7f60f0bbaf26c7d7b7e40ca34.zip",
+    "sha256": "c1a4f1ce8f45795d56c316474f217b226ead62c9dcdc29ee7bb0a1bf8865ee00",
+    "license": "Apache-2.0 with permissive exceptions; include full source notices"
+  },
+  "vulkanHeaders": {
+    "version": "1.4.366",
+    "revision": "438f1a2a694b64e21464d70a881bf05bfbe89d88",
+    "url": "https://github.com/KhronosGroup/Vulkan-Headers/archive/438f1a2a694b64e21464d70a881bf05bfbe89d88.zip",
+    "sha256": "0073cfd7d60b2dd030e535bcda07bd1c1df0d2eb7991bfb36f8a09178ef00e22",
+    "license": "Apache-2.0/MIT; include full source notices"
+  }
+}
