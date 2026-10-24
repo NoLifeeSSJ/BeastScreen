@@ -26,12 +26,24 @@ jobs:
       - name: Frozen restore, build and tests
         shell: pwsh
         run: |
-          dotnet restore BeastScreen.sln --locked-mode
+          New-Item -ItemType Directory artifacts/test-results -Force | Out-Null
+          dotnet restore BeastScreen.sln --locked-mode 2>&1 | Tee-Object artifacts/test-results/restore.log
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          dotnet build BeastScreen.sln --no-restore -c Release
+          dotnet build BeastScreen.sln --no-restore -c Release 2>&1 | Tee-Object artifacts/test-results/build.log
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           dotnet test tests/BeastScreen.Tests --no-build -c Release --logger "trx;LogFileName=core.trx" --results-directory artifacts/test-results
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Expose build/test failures in public annotations
+        if: failure()
+        shell: pwsh
+        run: |
+          foreach ($log in @('artifacts/test-results/restore.log','artifacts/test-results/build.log')) {
+            if (Test-Path $log) { foreach ($line in (Select-String -Path $log -Pattern '(?i)(: error |error [A-Z]+[0-9]+)' | Select-Object -First 12)) { Write-Output ('::error::' + $line.Line.Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')) } }
+          }
+          if (Test-Path artifacts/test-results/core.trx) {
+            [xml]$trx = Get-Content artifacts/test-results/core.trx -Raw
+            foreach ($failed in $trx.TestRun.Results.UnitTestResult | Where-Object { $_.outcome -eq 'Failed' }) { Write-Output ('::error::' + $failed.testName + ': ' + $failed.Output.ErrorInfo.Message.Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')) }
+          }
       - name: Installer helper checks on PowerShell 7
         shell: pwsh
         run: ./tests/Installer.Tests.ps1
