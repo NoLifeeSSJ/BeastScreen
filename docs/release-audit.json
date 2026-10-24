@@ -2,7 +2,15 @@
   "nativeRedistributionApproved": false,
   "windows11PlaybackAccepted": false,
   "cleanMachineInstallerAccepted": false,
-  "evidence": [],
+  "evidence": [
+    {
+      "kind": "windows-server-automation",
+      "sourceCommit": "42c7cb802d8e8814d7d4ebc0f6dc93e06e5bb0bd",
+      "url": "https://github.com/NoLifeeSSJ/BeastScreen/actions/runs/40123983733",
+      "result": "41 tests, native playback smoke, 22 installer assertions on each PowerShell version, and 9 controlled lifecycle assertions passed",
+      "limits": "WARP/null audio on Windows Server; fixture release transport and registration. Does not satisfy Windows 11, clean-machine or native licensing acceptance."
+    }
+  ],
   "blockers": [
     "Selected prebuilt mpv and FFmpeg archives do not include an exact transitive source/license inventory. Obtain matching complete corresponding source and build scripts before redistributing.",
     "Run the playback prototype and manual rendering/audio/focus/GPU tests on Windows 11 x64.",

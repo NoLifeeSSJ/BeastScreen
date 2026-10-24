@@ -1,6 +1,6 @@
 # Compatibility evidence
 
-The synthetic combination **Matroska + H.264 (8-bit, 640×360, 30 fps) + two AAC tracks** passes actual libmpv playback/seek/screenshot smoke on Windows Server 2025 x64 with WARP/software rendering and null audio ([CI evidence](https://github.com/NoLifeeSSJ/BeastScreen/actions/runs/40123368941)). This is not Windows 11, audible-output, high-resolution or hardware-decode qualification. SRT loading is tested; subtitle appearance still needs inspection. Cross-compilation and file extensions do not establish other codec support. The selected native build is pinned in `native-dependencies.json`; hardware, drivers and build options affect compatibility.
+The synthetic combination **Matroska + H.264 (8-bit, 640×360, 30 fps) + two AAC tracks** passes actual libmpv playback/seek/screenshot smoke on Windows Server 2025 x64 with WARP/software rendering and null audio ([CI evidence](https://github.com/NoLifeeSSJ/BeastScreen/actions/runs/40123983733)). This is not Windows 11, audible-output, high-resolution or hardware-decode qualification. SRT loading is tested; subtitle appearance still needs inspection. Cross-compilation and file extensions do not establish other codec support. The selected native build is pinned in `native-dependencies.json`; hardware, drivers and build options affect compatibility.
 
 | Category | Targets | Current evidence |
 | --- | --- | --- |
