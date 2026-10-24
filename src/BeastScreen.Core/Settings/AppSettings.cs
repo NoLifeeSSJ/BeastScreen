@@ -39,6 +39,8 @@ public sealed class AppSettings
         if (SubtitleColour is null || !System.Text.RegularExpressions.Regex.IsMatch(SubtitleColour, "^#[0-9a-fA-F]{8}$")) throw new ArgumentException("Subtitle colour must use #AARRGGBB.");
         if (Equalizer is null || Equalizer.Split(',').Length != 5 || Equalizer.Split(',').Any(x => !double.TryParse(x, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var value) || !double.IsFinite(value) || value is < -12 or > 12)) throw new ArgumentException("Equalizer needs five comma-separated gains between -12 and 12 dB.");
         if (string.IsNullOrWhiteSpace(ScreenshotFolder) || !Path.IsPathFullyQualified(ScreenshotFolder)) throw new ArgumentException("Choose an absolute screenshot folder.");
+        if (AudioLanguage is null || SubtitleLanguage is null || AudioLanguage.Length > 100 || SubtitleLanguage.Length > 100) throw new ArgumentException("Preferred languages must be a short list of language codes.");
+        if (Shortcuts is null || Shortcuts.Count > 20 || Shortcuts.Any(p => string.IsNullOrWhiteSpace(p.Key) || p.Key.Length > 40 || string.IsNullOrWhiteSpace(p.Value) || p.Value.Length > 64)) throw new ArgumentException("Shortcuts must be a bounded dictionary of command names and key gestures.");
     }
     public void Save(string path)
     {

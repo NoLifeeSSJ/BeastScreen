@@ -142,10 +142,11 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
         Guard(() =>
         {
             var sources = new List<string>();
-            foreach (var p in paths.Where(p => !p.StartsWith("--", StringComparison.Ordinal)).Take(128))
+            foreach (var p in paths.Where(p => !p.StartsWith("--", StringComparison.Ordinal)).Take(PlaylistFile.MaxItems))
             {
-                if (PlaylistFile.IsPlaylist(p) && !SourcePolicy.IsNetwork(p)) sources.AddRange(PlaylistFile.Load(p));
+                if (PlaylistFile.IsPlaylist(p) && !SourcePolicy.IsNetwork(p)) sources.AddRange(PlaylistFile.Load(p).Take(PlaylistFile.MaxItems - sources.Count));
                 else { SourcePolicy.Validate(p); sources.Add(p); }
+                if (sources.Count >= PlaylistFile.MaxItems) break;
             }
             if (sources.Count == 0) return;
             SaveProgress(); queue.Replace(sources); RefreshQueue(); if (ready) PlaySource(queue.Select(0)!);

@@ -200,8 +200,25 @@ function Restore-PendingOperation([string]$Root, $State) {
 }
 function Invoke-BeastScreenInstaller {
     if ([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT) { throw 'BeastScreen requires native Windows 11 x64.' }
-    $architecture = $env:PROCESSOR_ARCHITEW6432; if ([string]::IsNullOrEmpty($architecture)) { $architecture = $env:PROCESSOR_ARCHITECTURE }
-    if ($architecture -ne 'AMD64' -or [Environment]::OSVersion.Version.Build -lt 26100) { throw 'This build targets Windows 11 24H2 or newer, x64. Windows 10 and native ARM64 have not been qualified.' }
+    if (-not ('BeastScreenInstaller.NativePlatform' -as [type])) {
+        Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+namespace BeastScreenInstaller {
+    public static class NativePlatform {
+        [StructLayout(LayoutKind.Sequential)] public struct SystemInfo {
+            public ushort Architecture, Reserved; public uint PageSize;
+            public IntPtr MinimumAddress, MaximumAddress, ProcessorMask;
+            public uint ProcessorCount, ProcessorType, AllocationGranularity;
+            public ushort ProcessorLevel, ProcessorRevision;
+        }
+        [DllImport("kernel32.dll")] public static extern void GetNativeSystemInfo(out SystemInfo info);
+        public static ushort Architecture() { SystemInfo info; GetNativeSystemInfo(out info); return info.Architecture; }
+    }
+}
+'@
+    }
+    if ([BeastScreenInstaller.NativePlatform]::Architecture() -ne 9 -or [Environment]::OSVersion.Version.Build -lt 26100) { throw 'This build targets Windows 11 24H2 or newer, x64. Windows 10 and native ARM64 have not been qualified.' }
     $root = Assert-InstallPath $InstallDirectory
     $parent = [IO.Path]::GetDirectoryName($root); [IO.Directory]::CreateDirectory($parent) | Out-Null
     $hash = [Security.Cryptography.SHA256]::Create(); try { $id = [BitConverter]::ToString($hash.ComputeHash([Text.Encoding]::UTF8.GetBytes($root.ToLowerInvariant()))).Replace('-','').Substring(0,20) } finally { $hash.Dispose() }

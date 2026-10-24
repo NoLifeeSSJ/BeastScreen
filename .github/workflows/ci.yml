@@ -24,6 +24,7 @@ jobs:
         shell: pwsh
         run: ./scripts/Restore-Native.ps1
       - name: Frozen restore, build and tests
+        id: build
         shell: pwsh
         run: |
           New-Item -ItemType Directory artifacts/test-results -Force | Out-Null
@@ -46,11 +47,14 @@ jobs:
           }
       - name: Installer helper checks on PowerShell 7
         shell: pwsh
-        run: ./tests/Installer.Tests.ps1
+        run: |
+          try { ./tests/Installer.Tests.ps1 } catch { Write-Output ('::error::' + ($_.Exception.ToString() + ' ' + $_.InvocationInfo.PositionMessage).Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')); exit 1 }
       - name: Installer helper checks on Windows PowerShell 5.1
         shell: powershell
-        run: ./tests/Installer.Tests.ps1
+        run: |
+          try { ./tests/Installer.Tests.ps1 } catch { Write-Output ('::error::' + ($_.Exception.ToString() + ' ' + $_.InvocationInfo.PositionMessage).Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')); exit 1 }
       - name: Real decode and rendering smoke test on Windows Server
+        if: always() && steps.build.outcome == 'success'
         shell: pwsh
         run: |
           ./scripts/Generate-Fixtures.ps1
@@ -59,7 +63,7 @@ jobs:
           $result = Join-Path $PWD 'artifacts/test-results/playback.json'
           $p = Start-Process $exe -ArgumentList @('--smoke-test', ('"' + $fixture + '"'), '--result', ('"' + $result + '"')) -PassThru
           if (-not $p.WaitForExit(60000)) { $p.Kill(); throw 'Windows playback smoke timed out' }
-          if ($p.ExitCode -ne 0) { if (Test-Path $result) { Get-Content $result }; throw 'Windows playback smoke failed' }
+          if ($p.ExitCode -ne 0) { if (Test-Path $result) { $text = Get-Content $result -Raw; Write-Output ('::error::' + $text.Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')) }; throw 'Windows playback smoke failed' }
           $report = Get-Content $result -Raw | ConvertFrom-Json
           if (-not $report.checks.all) { throw 'Smoke test did not report all required checks' }
       - name: Preserve test evidence
@@ -70,10 +74,13 @@ jobs:
           path: artifacts/test-results/
           if-no-files-found: error
       - name: Self-contained package and controlled installer lifecycle
+        if: always() && steps.build.outcome == 'success'
         shell: pwsh
         run: |
-          ./scripts/Package.ps1 -Version v0.1.0
-          ./tests/Installer.Lifecycle.ps1 -PublishedApplication (Join-Path $PWD 'artifacts/publish-v0.1.0')
+          try {
+            ./scripts/Package.ps1 -Version v0.1.0
+            ./tests/Installer.Lifecycle.ps1 -PublishedApplication (Join-Path $PWD 'artifacts/publish-v0.1.0')
+          } catch { Write-Output ('::error::' + ($_.Exception.ToString() + ' ' + $_.InvocationInfo.PositionMessage).Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')); exit 1 }
   dependency-review:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
