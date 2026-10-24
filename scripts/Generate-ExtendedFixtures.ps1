@@ -34,6 +34,11 @@ foreach($kind in @('hls','dash')){New-Item -ItemType Directory -Path (Join-Path 
 $hls=Join-Path $OutputDirectory 'hls'
 & $FFmpeg -nostdin -v error -y -i $BaseFixture -map '0:v:0' -map '0:a:0' -c:v libx264 -preset ultrafast -g 60 -sc_threshold 0 -c:a copy -f hls -hls_time 2 -hls_playlist_type vod -hls_segment_filename (Join-Path $hls 'segment-%03d.ts') (Join-Path $hls 'index.m3u8')
 if($LASTEXITCODE -ne 0){throw 'Could not generate unencrypted HLS fixture.'}
-& $FFmpeg -nostdin -v error -y -i $BaseFixture -map '0:v:0' -map '0:a:0' -c:v libx264 -preset ultrafast -g 60 -sc_threshold 0 -c:a copy -f dash -seg_duration 2 (Join-Path (Join-Path $OutputDirectory 'dash') 'index.mpd')
+$dash=Join-Path $OutputDirectory 'dash'
+# FFmpeg dashenc splits the manifest directory on '/'; native Windows '\' paths
+# otherwise put fragments in the process working directory instead of beside MPD.
+$dashManifest=(Join-Path $dash 'index.mpd').Replace('\','/')
+& $FFmpeg -nostdin -v error -y -i $BaseFixture -map '0:v:0' -map '0:a:0' -c:v libx264 -preset ultrafast -g 60 -sc_threshold 0 -c:a copy -f dash -seg_duration 2 $dashManifest
 if($LASTEXITCODE -ne 0){throw 'Could not generate unencrypted DASH fixture.'}
+if(@(Get-ChildItem -LiteralPath $dash -Filter 'init-stream*.m4s' -File).Count -lt 2 -or @(Get-ChildItem -LiteralPath $dash -Filter 'chunk-stream*.m4s' -File).Count -lt 2){throw 'DASH fragments were not generated beside the manifest.'}
 Write-Output ('Generated controlled codec and stream fixtures in ' + $OutputDirectory)
