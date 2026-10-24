@@ -61,7 +61,7 @@ public partial class MainWindow
         catch (Exception ex)
         {
             checks["all"] = false;
-            File.WriteAllText(output, JsonSerializer.Serialize(new { checks, status = model.Status, snapshot = model.LastSnapshot, sourceBytes = model.Engine.Get("file-size"), error = Redaction.Clean(ex.ToString()) }, new JsonSerializerOptions { WriteIndented = true }));
+            File.WriteAllText(output, JsonSerializer.Serialize(new { checks, status = model.Status, snapshot = model.LastSnapshot, mpvVersion = model.Engine.Get("mpv-version"), ffmpegVersion = model.Engine.Get("ffmpeg-version"), sourceBytes = model.Engine.Get("file-size"), diagnosticMessages = (model.Engine as MpvEngine)?.DiagnosticMessages, error = Redaction.Clean(ex.ToString()) }, new JsonSerializerOptions { WriteIndented = true }));
             Application.Current.Shutdown(1);
         }
     }

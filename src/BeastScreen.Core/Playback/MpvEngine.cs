@@ -1,5 +1,7 @@
 using System.Globalization;
+using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
+using System.Text;
 using BeastScreen.Core.Security;
 
 namespace BeastScreen.Core.Playback;
@@ -7,6 +9,10 @@ namespace BeastScreen.Core.Playback;
 /// <summary>One libmpv client, one event worker. No user scripts, config, or shell commands.</summary>
 public sealed class MpvEngine : IPlaybackEngine
 {
+    private readonly bool diagnostics;
+    private readonly ConcurrentQueue<string> diagnosticMessages = new();
+    public MpvEngine(bool diagnostics = false) => this.diagnostics = diagnostics;
+    public IReadOnlyList<string> DiagnosticMessages => diagnosticMessages.ToArray();
     private readonly object gate = new();
     private nint handle;
     private Thread? worker;
@@ -42,6 +48,7 @@ public sealed class MpvEngine : IPlaybackEngine
                 if (options is not null) foreach (var pair in options) defaults[pair.Key] = pair.Value;
                 foreach (var pair in defaults) Check(Native.mpv_set_option_string(handle, pair.Key, pair.Value));
                 Check(Native.mpv_initialize(handle));
+                if (diagnostics) Check(Native.mpv_request_log_messages(handle, "debug"));
                 foreach (var name in new[] { "time-pos", "duration", "pause", "volume", "mute", "seekable", "media-title", "track-list", "chapter-list", "hwdec-current" })
                     Check(Native.mpv_observe_property(handle, 0, name, 0));
                 stopping = false;
@@ -106,6 +113,13 @@ public sealed class MpvEngine : IPlaybackEngine
                 if (stopping || pointer == 0) continue;
                 var e = Marshal.PtrToStructure<MpvEvent>(pointer);
                 if (e.Id == 1) break; // shutdown
+                if (e.Id == 2 && e.Data != 0)
+                {
+                    var message = Marshal.PtrToStructure<LogEvent>(e.Data);
+                    diagnosticMessages.Enqueue(Redaction.Clean($"{ReadText(message.Prefix, 128)} {ReadText(message.Level, 16)}: {ReadText(message.Text, 4096)}"));
+                    while (diagnosticMessages.Count > 200) diagnosticMessages.TryDequeue(out _);
+                    continue;
+                }
                 if (e.Id == 7) // end-file
                 {
                     var end = Marshal.PtrToStructure<EndFileEvent>(e.Data);
@@ -153,6 +167,13 @@ public sealed class MpvEngine : IPlaybackEngine
     }
 
     private double Number(string property) => double.TryParse(Get(property), NumberStyles.Float, CultureInfo.InvariantCulture, out var n) && double.IsFinite(n) ? n : 0;
+    private static string ReadText(nint pointer, int maximum)
+    {
+        if (pointer == 0) return "";
+        var bytes = new byte[maximum]; var length = 0;
+        while (length < bytes.Length && (bytes[length] = Marshal.ReadByte(pointer, length)) != 0) length++;
+        return Encoding.UTF8.GetString(bytes, 0, length);
+    }
     private void EnsureReady() { if (handle == 0 || stopping) throw new PlaybackException("Playback engine is not ready."); }
     private static string Error(int code) => Marshal.PtrToStringUTF8(Native.mpv_error_string(code)) ?? $"mpv error {code}";
     private static void Check(int result) { if (result < 0) throw new PlaybackException(Error(result)); }
@@ -168,6 +189,7 @@ public sealed class MpvEngine : IPlaybackEngine
     [StructLayout(LayoutKind.Sequential)] private struct MpvEvent { public int Id; public int Error; public ulong UserData; public nint Data; }
     [StructLayout(LayoutKind.Sequential)] private struct EndFileEvent { public int Reason; public int Error; }
     [StructLayout(LayoutKind.Sequential)] private struct PropertyEvent { public nint Name; public int Format; public nint Data; }
+    [StructLayout(LayoutKind.Sequential)] private struct LogEvent { public nint Prefix, Level, Text; public int LogLevel; }
 
     private static class Native
     {
@@ -189,6 +211,7 @@ public sealed class MpvEngine : IPlaybackEngine
         [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] public static extern void mpv_terminate_destroy(nint ctx);
         [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] public static extern void mpv_wakeup(nint ctx);
         [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] public static extern nint mpv_wait_event(nint ctx, double timeout);
+        [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] public static extern int mpv_request_log_messages(nint ctx, [MarshalAs(UnmanagedType.LPUTF8Str)] string level);
         [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] public static extern int mpv_set_option_string(nint ctx, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, [MarshalAs(UnmanagedType.LPUTF8Str)] string value);
         [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] public static extern int mpv_set_property_string(nint ctx, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, [MarshalAs(UnmanagedType.LPUTF8Str)] string value);
         [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] public static extern nint mpv_get_property_string(nint ctx, [MarshalAs(UnmanagedType.LPUTF8Str)] string name);

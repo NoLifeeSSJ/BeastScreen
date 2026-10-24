@@ -78,7 +78,7 @@ public sealed class NativePlaybackTests
             player.Start(); started = true; using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(90)); await player.WaitForExitAsync(timeout.Token);
             Assert.True(File.Exists(reportPath), "The actual player did not write a network test report.");
             using var result = JsonDocument.Parse(await File.ReadAllTextAsync(reportPath));
-            Assert.True(player.ExitCode == 0, result.RootElement.ToString());
+            Assert.True(player.ExitCode == 0, result.RootElement + "\nFixture request counts: " + JsonSerializer.Serialize(server.RequestCounts));
             Assert.True(result.RootElement.GetProperty("checks").GetProperty("all").GetBoolean());
             Assert.Equal(1, server.FailureCount("/recover")); Assert.True(server.RequestCount("/recover") >= 2);
             Assert.Equal(4, server.RequestCount("/exhaust"));
@@ -103,6 +103,23 @@ public sealed class NativePlaybackTests
             using var result = JsonDocument.Parse(await File.ReadAllTextAsync(report)); Assert.False(result.RootElement.GetProperty("checks").GetProperty("all").GetBoolean());
         }
         finally { if (started && !player.HasExited) player.Kill(entireProcessTree: true); }
+    }
+
+    [Fact] public async Task FfmpegDecodesTheControlledDashFixture()
+    {
+        await using var server = new LoopbackMediaServer(Fixtures);
+        var tool = OperatingSystem.IsWindows() ? Path.Combine(Repository, ".native", "tools", "ffmpeg.exe") : "/usr/bin/ffmpeg";
+        using var decoder = new Process { StartInfo = new() { FileName = tool, UseShellExecute = false, RedirectStandardError = true } };
+        foreach (var arg in new[] { "-nostdin", "-v", "error", "-i", server.Url("dash/index.mpd"), "-map", "0:v:0", "-frames:v", "2", "-an", "-f", "null", "-" }) decoder.StartInfo.ArgumentList.Add(arg);
+        var started = false;
+        try
+        {
+            decoder.Start(); started = true; var error = decoder.StandardError.ReadToEndAsync();
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15)); await decoder.WaitForExitAsync(timeout.Token);
+            Assert.True(decoder.ExitCode == 0, await error);
+            Assert.True(server.RequestCount("/dash/index.mpd") > 0);
+        }
+        finally { if (started && !decoder.HasExited) decoder.Kill(entireProcessTree: true); }
     }
 
     private static void RequireWindows() => Assert.True(OperatingSystem.IsWindows(), "This suite must execute on Windows with the pinned native DLLs and generated fixtures. Linux only cross-builds it; no tests are silently skipped.");

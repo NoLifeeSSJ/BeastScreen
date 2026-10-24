@@ -107,7 +107,7 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
         scanner.FoldersChanged += () => dispatcher.InvokeAsync(() => { scanDebounce!.Stop(); scanDebounce.Start(); });
         scanner.Skipped += folder => dispatcher.InvokeAsync(() => Status = "Some inaccessible folders were skipped; see your folder permissions.");
         scanDebounce = new DispatcherTimer(TimeSpan.FromSeconds(2), DispatcherPriority.Background, async (_, _) => { scanDebounce!.Stop(); if (!IsScanning) await RescanAsync(); }, dispatcher); scanDebounce.Stop();
-        Engine = new MpvEngine();
+        Engine = new MpvEngine(diagnostics: temporary);
         Engine.Changed += snapshot => dispatcher.InvokeAsync(() => OnSnapshot(snapshot));
         Engine.Failed += message => dispatcher.InvokeAsync(async () => { Error = message; Status = "Playback could not continue. Check the source and try again."; await ReconnectAsync(); });
         Engine.Ended += () => dispatcher.InvokeAsync(() => { SaveProgress(true); var next = queue.Next(true); if (next is not null) PlaySource(next, restart: true); });

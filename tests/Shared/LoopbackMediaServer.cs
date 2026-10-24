@@ -30,6 +30,7 @@ public sealed class LoopbackMediaServer : IAsyncDisposable
 
     public string Url(string path) => new Uri(Address, path).AbsoluteUri;
     public int RequestCount(string path) => requests.GetValueOrDefault(path);
+    public IReadOnlyDictionary<string, int> RequestCounts => requests.ToDictionary(pair => pair.Key, pair => pair.Value);
     public int FailureCount(string path) => failedResponses.GetValueOrDefault(path);
     public void FailNext(string path, int count) => failures[path] = count;
 
