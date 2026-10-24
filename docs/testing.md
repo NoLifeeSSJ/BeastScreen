@@ -5,6 +5,7 @@
 Environment: Debian 13 x64, .NET SDK 10.0.402 / runtime 10.0.13, FFmpeg 7.1.5 from the host, PowerShell 7.6.8 (download verified against upstream SHA256 manifest). **This is not a Windows playback qualification.**
 
 - Core suite: **41 passed, 0 failed, 0 skipped** on Linux. Includes SQLite schema guards/backup/restore/relocation, history/resume/favourites/playlists, 10,000-record paging, Unicode paths, playlist parsing/cycles/limits/local HLS, forbidden protocols, URL/header credential redaction, JSON preferences, queue/repeat/shuffle, retry budget, cancellation/missing files, real embedded-audio tag extraction, extensionless video frame generation and corrupt/missing media helper failures.
+- Follow-up fixture suite: **43 core tests pass locally**, including real HTTP range responses, finite HTTP failures, range rejection and encoded-path containment. The new 13-case native playback suite is cross-built locally and awaits its first Windows CI execution; do not count it as passed until that run completes.
 - WPF `win-x64` cross-build: passed, **0 warnings and 0 errors**.
 - Installer helpers on PowerShell 7: **22 assertions passed**. Real ZIP extraction, traversal/absolute-path/alternate-stream/case-duplicate rejection, SHA256 corruption/duplicate-manifest rejection, atomic state backup, owned-file removal, interrupted-activation recovery and preservation of unowned files.
 - Native Windows dependencies: libmpv archive and DLL, FFmpeg archive and official Vulkan source archives pinned by SHA256. PE imports inspected; required Vulkan loader copies supplied for both libmpv and FFmpeg. The loader successfully builds in Windows CI.
@@ -33,6 +34,8 @@ dotnet build src\BeastScreen.Desktop --no-restore
 The Windows app supports `--smoke-test <fixture.mkv> --result <result.json>` and exits nonzero if real decode/duration/pause/seek/track/subtitle/screenshot checks fail. A synthetic eight-second 640×360 H.264/AAC file has two audio tracks and a separate SRT. The CI smoke uses WARP/software rendering and null audio on Windows Server 2025; it cannot prove audible output or Windows 11 GPU behaviour. `--health-check` checks native initialization; `--check-data` reads the user's existing schema without migrating it.
 
 ## Required interactive Windows 11 checks — not run
+
+Windows 11 access is unavailable, as confirmed by the user on 2026-10-24. This does not block controlled Windows Server tests or justify qualifying Windows 11 without testing it.
 
 - Video visible inside the native surface; physical audio; rendered subtitle appearance; selected audio/video tracks; chapter/edition selection; seek/pause/duration and frame stepping.
 - Hardware decode on supported H.264/HEVC/AV1, forced software decode and fallback; dropped frames, HDR-to-SDR and supported HDR output; audio-device changes and multichannel/passthrough with appropriate hardware.

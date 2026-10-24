@@ -2,6 +2,8 @@
 
 Statuses describe evidence, not just source-code presence.
 
+Windows 11 test access is currently unavailable (confirmed by the user, 2026-10-24). Continue implementation and Windows Server automation independently; leave Windows 11, physical-device and clean-machine acceptance unapproved until that access exists. Do not weaken or replace those release gates.
+
 1. **Repository and playback prototype — automated Windows Server playback passes; Windows 11 acceptance pending.** WPF HWND host, libmpv lifecycle/events, D3D11/WARP configuration, rendering ADR and smoke runner work in CI with a real synthetic H.264/AAC fixture. The required Vulkan loader builds successfully. Physical audio, input focus, subtitle appearance and GPU/software fallback must be observed on Windows 11 before this milestone is fully accepted.
 2. **Playback controls — implemented, Windows acceptance pending.** Open/seek/queue/tracks/speed/chapters/loop/subtitle/picture/audio/diagnostics are wired. No placeholder buttons are presented as a delivered feature. Audio device selection currently uses an engine device list plus its exact name rather than a friendly device picker.
 3. **Library/playlists/preferences — core and helper tests pass; Windows product acceptance pending.** SQLite, resume, favourites, history, bookmarks, backup/restore, relocation, search/pagination, selected-folder scans, embedded tags, bounded thumbnails/cover art, page-based artist/album/genre grouping and playlist import/export exist. Rich music browsing across full collections needs further product work.

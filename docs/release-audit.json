@@ -2,6 +2,10 @@
   "nativeRedistributionApproved": false,
   "windows11PlaybackAccepted": false,
   "cleanMachineInstallerAccepted": false,
+  "testAccess": {
+    "windows11": "unavailable; confirmed by user on 2026-10-24",
+    "windowsServerAutomation": "available through GitHub Actions"
+  },
   "evidence": [
     {
       "kind": "windows-server-automation",
