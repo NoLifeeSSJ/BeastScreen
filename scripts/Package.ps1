@@ -12,7 +12,7 @@ if (Test-Path $publish) { Remove-Item -LiteralPath $publish -Recurse -Force }
 New-Item -ItemType Directory -Path $output -Force | Out-Null
 & dotnet publish (Join-Path $repo 'src/BeastScreen.Desktop/BeastScreen.Desktop.csproj') -c Release -r win-x64 --self-contained true --no-restore ('-p:Version=' + $Version.TrimStart('v')) -o $publish
 if ($LASTEXITCODE -ne 0) { throw 'Self-contained Windows publish failed.' }
-foreach ($file in @('native/libmpv-2.dll','native/vulkan-1.dll','tools/ffmpeg.exe')) { if (-not (Test-Path (Join-Path $publish $file))) { throw ('Missing packaged dependency: ' + $file) } }
+foreach ($file in @('native/libmpv-2.dll','native/vulkan-1.dll','tools/ffmpeg.exe','tools/vulkan-1.dll')) { if (-not (Test-Path (Join-Path $publish $file))) { throw ('Missing packaged dependency: ' + $file) } }
 [IO.File]::WriteAllText((Join-Path $publish 'release-manifest.json'), (@{ product='BeastScreen'; version=$Version; architecture='x64'; minimumWindowsBuild=26100; databaseSchema=1; maximumReadableSchema=1; development=(-not $ForRelease.IsPresent) } | ConvertTo-Json))
 Copy-Item (Join-Path $repo 'LICENSE') $publish
 Copy-Item (Join-Path $repo 'LICENSES') $publish -Recurse

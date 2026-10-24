@@ -14,7 +14,9 @@ Checked on 2026-10-24 against Microsoft's .NET release metadata, NuGet flat-cont
 | Vulkan loader / headers | 1.4.366, exact full commits | Khronos source ZIPs with pinned SHA256; loader built locally with static MSVC runtime; source retains Apache-2.0/MIT/per-file exceptions |
 | Unit test runner | Microsoft.NET.Test.Sdk 18.11.0, xUnit 2.9.3, adapter 4.0.1 | Exact NuGet pins and lockfiles; test tools are not application dependencies |
 
-The selected libmpv DLL imports `vulkan-1.dll` even with D3D11 rendering. `Restore-Native.ps1` therefore builds the loader from pinned official sources instead of assuming the GPU driver installed it. Vulkan hardware is not required for D3D11; the dependency is the loader library. Windows provides the UCRT and system DLLs. No system codec pack is used. Confirm all actual imports and native minimum-OS requirements on a clean machine before qualification.
+The selected libmpv DLL and FFmpeg executable both import `vulkan-1.dll`, including with D3D11 rendering or audio-only inspection. `Restore-Native.ps1` builds the loader from pinned official sources and places a copy beside each consumer instead of assuming the GPU driver installed it. Vulkan hardware is not required for D3D11; the dependency is the loader library. PE imports confirm UCRT/system dependencies and no separate Visual C++ runtime import for the selected native builds; the loader uses static MSVC runtime. No system codec pack is used. Confirm all native minimum-OS requirements on a clean machine before qualification.
+
+The selected FFmpeg executable embeds `--enable-gpl --enable-version3` and no `--enable-nonfree` flag, with OpenSSL and the codec libraries listed by its full build configuration. This is useful audit evidence, not a complete rights/source audit. The helper build explicitly disables ffprobe; BeastScreen uses FFmetadata output for local tags.
 
 ## Release gate
 

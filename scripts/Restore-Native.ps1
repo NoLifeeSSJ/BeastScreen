@@ -38,4 +38,5 @@ if ($LASTEXITCODE -ne 0) { throw 'Vulkan loader configuration failed.' }
 $dll = @(Get-ChildItem -LiteralPath $loaderBuild -Filter 'vulkan-1.dll' -Recurse | Where-Object { $_.FullName -match '[\\/]Release[\\/]' })
 if ($dll.Count -ne 1) { throw 'Expected exactly one Release Vulkan loader DLL.' }
 Copy-Item -LiteralPath $dll[0].FullName -Destination (Join-Path $native 'vulkan-1.dll') -Force
+Copy-Item -LiteralPath $dll[0].FullName -Destination (Join-Path $tools 'vulkan-1.dll') -Force
 Write-Output 'Pinned native development dependencies prepared. Redistribution remains gated by docs/release-audit.json.'
