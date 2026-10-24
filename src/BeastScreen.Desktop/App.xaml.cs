@@ -32,7 +32,8 @@ public partial class App : Application
             catch { Shutdown(20); }
             return;
         }
-        var smoke = e.Args.Contains("--smoke-test");
+        var networkSmoke = e.Args.Contains("--network-smoke-test");
+        var smoke = networkSmoke || e.Args.Contains("--smoke-test");
         if (!smoke)
         {
             instance = new();
@@ -46,7 +47,8 @@ public partial class App : Application
         try
         {
             var window = new MainWindow(smoke); MainWindow = window; window.Show();
-            if (smoke) await window.RunSmokeAsync(e.Args);
+            if (networkSmoke) await window.RunNetworkSmokeAsync(e.Args);
+            else if (smoke) await window.RunSmokeAsync(e.Args);
             else
             {
                 _ = instance!.ListenAsync(paths => Dispatcher.InvokeAsync(() => { window.Activate(); window.OpenSources(paths); }));

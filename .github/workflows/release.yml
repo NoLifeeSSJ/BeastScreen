@@ -29,9 +29,16 @@ jobs:
           ./scripts/Restore-Native.ps1
           dotnet restore BeastScreen.sln --locked-mode
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          dotnet test tests/BeastScreen.Tests -c Release --no-restore
+          dotnet build BeastScreen.sln -c Release --no-restore
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          dotnet test tests/BeastScreen.Tests -c Release --no-build
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           ./tests/Installer.Tests.ps1
+          ./scripts/Generate-Fixtures.ps1
+          $fixture=(Get-ChildItem artifacts/fixtures -Filter *.mkv).FullName
+          ./scripts/Generate-ExtendedFixtures.ps1 -BaseFixture $fixture
+          dotnet test tests/BeastScreen.PlaybackTests -c Release --no-build
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
           ./scripts/Restore-AuditedSources.ps1
           ./scripts/Package.ps1 -Version $env:GITHUB_REF_NAME -ForRelease
       - name: Publish verified assets and notes

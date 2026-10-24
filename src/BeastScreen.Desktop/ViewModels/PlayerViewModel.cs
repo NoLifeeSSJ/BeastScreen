@@ -163,6 +163,7 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
             if (!HasPrivateUrl(value)) Database.Upsert(value, network ? Redaction.Clean(value) : Path.GetFileNameWithoutExtension(value), network ? "Stream" : LibraryScanner.AudioExtensions.Contains(Path.GetExtension(value)) ? "Music" : "Video");
             var progress = Database.Progress(value); var resume = !restart && ResumeEnabled && (progress.Duration == 0 || progress.Resume < progress.Duration - 10) ? progress.Resume : 0;
             position = resume; duration = progress.Duration;
+            LastSnapshot = null; Seekable = false; SeekPosition = 0; TimeLabel = "Loading…";
             Engine.Open(value, resume); SelectedQueueIndex = queue.Index; RefreshBookmarks();
         });
     }

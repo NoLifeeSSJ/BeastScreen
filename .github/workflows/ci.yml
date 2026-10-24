@@ -74,6 +74,22 @@ jobs:
             ./scripts/Package.ps1 -Version v0.1.0
             ./tests/Installer.Lifecycle.ps1 -PublishedApplication (Join-Path $PWD 'artifacts/publish-v0.1.0')
           } catch { Write-Output ('::error::' + ($_.Exception.ToString() + ' ' + $_.InvocationInfo.PositionMessage).Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')); exit 1 }
+      - name: Controlled network and codec playback integration
+        if: always() && steps.build.outcome == 'success'
+        shell: pwsh
+        run: |
+          $fixture = (Get-ChildItem artifacts/fixtures -Filter *.mkv).FullName
+          ./scripts/Generate-ExtendedFixtures.ps1 -BaseFixture $fixture
+          dotnet test tests/BeastScreen.PlaybackTests --no-build -c Release --logger "trx;LogFileName=native.trx" --results-directory artifacts/test-results
+          $testExit = $LASTEXITCODE
+          if ($testExit) {
+            if (Test-Path artifacts/test-results/network-playback.json) { $report=Get-Content artifacts/test-results/network-playback.json -Raw; Write-Output ('::error::' + $report.Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')) }
+            if (Test-Path artifacts/test-results/native.trx) {
+              [xml]$trx=Get-Content artifacts/test-results/native.trx -Raw
+              foreach($failed in $trx.TestRun.Results.UnitTestResult | Where-Object { $_.outcome -eq 'Failed' }){Write-Output ('::error::' + $failed.testName + ': ' + $failed.Output.ErrorInfo.Message.Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A'))}
+            }
+            exit $testExit
+          }
       - name: Preserve test evidence
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
