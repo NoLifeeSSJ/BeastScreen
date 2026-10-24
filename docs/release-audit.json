@@ -1,0 +1,11 @@
+{
+  "nativeRedistributionApproved": false,
+  "windows11PlaybackAccepted": false,
+  "cleanMachineInstallerAccepted": false,
+  "evidence": [],
+  "blockers": [
+    "Selected prebuilt mpv and FFmpeg archives do not include an exact transitive source/license inventory. Obtain matching complete corresponding source and build scripts before redistributing.",
+    "Run the playback prototype and manual rendering/audio/focus/GPU tests on Windows 11 x64.",
+    "Run fresh/repeated install, update, repair, rollback, uninstall, corrupt-checksum and interrupted-operation tests on a clean Windows 11 machine without developer tools."
+  ]
+}

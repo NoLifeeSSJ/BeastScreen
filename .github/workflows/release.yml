@@ -1,0 +1,43 @@
+name: Tagged release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: windows-2025
+    timeout-minutes: 35
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Check tag and release acceptance evidence
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF -notmatch '^refs/tags/v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$') { throw 'Release must run from a version tag' }
+          $audit = Get-Content docs/release-audit.json -Raw | ConvertFrom-Json
+          if (-not $audit.nativeRedistributionApproved -or -not $audit.windows11PlaybackAccepted -or -not $audit.cleanMachineInstallerAccepted -or $audit.evidence.Count -lt 3) { throw 'Windows acceptance and complete native corresponding-source/license audit are required before publishing.' }
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+        with:
+          global-json-file: global.json
+      - shell: pwsh
+        run: |
+          ./scripts/Restore-Native.ps1
+          dotnet restore BeastScreen.sln --locked-mode
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          dotnet test tests/BeastScreen.Tests -c Release --no-restore
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          ./tests/Installer.Tests.ps1
+          ./scripts/Restore-AuditedSources.ps1
+          ./scripts/Package.ps1 -Version $env:GITHUB_REF_NAME -ForRelease
+      - name: Publish verified assets and notes
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create $env:GITHUB_REF_NAME --verify-tag --title "BeastScreen $env:GITHUB_REF_NAME" --notes-file artifacts/release/release-notes.md artifacts/release/*
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
